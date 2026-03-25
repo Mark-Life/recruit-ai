@@ -11,7 +11,8 @@
       "!dist/**/*",
       "!packages/ui/src/components/**/*",
       "!packages/ui/src/hooks/**/*",
-      "!packages/ui/src/lib/**/*"
+      "!packages/ui/src/lib/**/*",
+      "!packages/ui/src/components/ai-elements/**/*"
     ]
   },
   "overrides": [
