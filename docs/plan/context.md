@@ -76,11 +76,93 @@ DRIVING ADAPTERS              CORE              DRIVEN ADAPTERS
 - **Language**: TypeScript + Effect.ts
 - **Frontend**: Next.js
 - **Backend**: Next.js (API routes)
+- **ORM**: Drizzle ORM (with Effect schema integration via `drizzle-orm/effect-schema`)
 - **Database**: PostgreSQL
 - **Vector DB**: pgvector (PostgreSQL extension)
 - **LLM**: TBD
 - **Embeddings**: Gemini Embeddings 2
 - **Infra**: Vercel
+
+## Drizzle ORM + Effect Schema
+
+We use **Drizzle ORM** (`drizzle-orm@1.0.0-beta.19`+) as the database layer. Drizzle lives **entirely in the adapter layer** — the domain never imports Drizzle.
+
+**Why Drizzle:**
+
+- Type-safe SQL — queries are checked at compile time
+- Effect schema integration via `drizzle-orm/effect-schema` — useful for validation at the adapter boundary
+- Lightweight — no heavy runtime, maps naturally to SQL
+
+**Docs:** <https://orm.drizzle.team/docs/effect-schema>
+
+### Hexagonal Principle: Domain Is the Source of Truth
+
+Domain models (`Schema.Class` in `domain/models/`) define the shape of data. Drizzle table definitions in `adapters/db/schema.ts` must conform to those shapes — **not the other way around**. Dependencies always point inward:
+
+```
+adapters/db/schema.ts  →  imports types from  →  domain/models/Talent.ts
+adapters/db/TalentRepo →  imports types from  →  domain/models/Talent.ts
+domain/models/         →  imports NOTHING from adapters (zero infra deps)
+```
+
+### Type-Safe Domain ↔ DB Mapping
+
+**Requirement:** if a developer changes a domain `Schema.Class` (adds a field, renames a field, changes a type), the TypeScript compiler must produce a type error in the adapter layer until the Drizzle schema and mapping are updated accordingly. This guarantees no silent drift between domain and DB.
+
+**How it works:** the adapter repository maps between Drizzle rows and domain models using `Schema.decode`/`Schema.encode`. Since the repository function's return type is the domain model, any mismatch between the Drizzle row shape and the domain `Schema.Class` is a compile-time error.
+
+```typescript
+// domain/models/Talent.ts — source of truth, pure Effect Schema
+import { Schema } from "effect"
+
+export class Talent extends Schema.Class<Talent>("Talent")({
+  id: TalentId,
+  name: Schema.String,
+  skills: Schema.Array(Schema.String),
+  experienceYears: Schema.Number,
+  keywords: Schema.Array(Schema.String),
+}) {}
+```
+
+```typescript
+// adapters/db/schema.ts — Drizzle table, lives in adapter layer
+import { pgTable, serial, text, integer } from "drizzle-orm/pg-core"
+
+export const talentsTable = pgTable("talents", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  skills: text("skills").array().notNull(),
+  experienceYears: integer("experience_years").notNull(),
+  keywords: text("keywords").array().notNull(),
+})
+```
+
+```typescript
+// adapters/db/TalentRepositoryPostgres.ts — mapping layer
+import { Schema } from "effect"
+import { Talent } from "../../domain/models/Talent"
+import { talentsTable } from "./schema"
+
+// Schema.decodeUnknown(Talent) ensures the row matches the domain model.
+// If domain adds a field that the Drizzle row doesn't have → type error.
+// If domain changes a field type → type error.
+const decodeTalent = Schema.decodeUnknownSync(Talent)
+
+// Example: mapping a Drizzle select result to a domain model
+const toDomain = (row: typeof talentsTable.$inferSelect): Talent =>
+  decodeTalent(row)
+//                ^ TypeScript error here if shapes diverge
+```
+
+**The type safety chain:**
+
+1. Developer adds `location: Schema.String` to `Talent` domain model
+2. `decodeTalent(row)` now expects `location` in its input → **compile error** in the adapter
+3. Developer adds `location` column to `talentsTable` in Drizzle schema
+4. Developer runs `drizzle-kit generate` → migration created
+5. All types align again, compiler is happy
+
+This ensures that domain model changes **always propagate** to the database layer — the type system acts as the enforcer, giving a clear signal to the developer (or AI agent) to update the DB schema and run migrations.
 
 ## Draft: Project Structure with Effect.ts
 
@@ -121,6 +203,7 @@ src/
 │   ├── vector/
 │   │   └── PgVectorAdapter.ts
 │   └── db/
+│       ├── schema.ts           # Drizzle table definitions (pgTable)
 │       ├── PostgresAdapter.ts  # Shared pg connection layer
 │       ├── TalentRepositoryPostgres.ts
 │       ├── RecruiterRepositoryPostgres.ts
