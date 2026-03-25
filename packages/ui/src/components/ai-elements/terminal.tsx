@@ -2,7 +2,9 @@
 
 import { Button } from "@workspace/ui/components/button";
 import { cn } from "@workspace/ui/lib/utils";
-import Ansi from "ansi-to-react";
+import AnsiImport from "ansi-to-react";
+
+const Ansi = AnsiImport as unknown as import("react").ComponentType<{ children: string }>;
 import { CheckIcon, CopyIcon, TerminalIcon, Trash2Icon } from "lucide-react";
 import type { ComponentProps, HTMLAttributes } from "react";
 import {

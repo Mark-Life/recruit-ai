@@ -2,7 +2,7 @@
 
 import { cn } from "@workspace/ui/lib/utils";
 import { AlertCircle } from "lucide-react";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps, ComponentType, ReactNode } from "react";
 import {
   createContext,
   memo,
@@ -15,6 +15,8 @@ import {
 } from "react";
 import type { TProps as JsxParserProps } from "react-jsx-parser";
 import JsxParser from "react-jsx-parser";
+
+const JsxParserComponent = JsxParser as unknown as ComponentType<JsxParserProps>;
 
 interface JSXPreviewContextValue {
   jsx: string;
@@ -63,7 +65,7 @@ const matchJsxTag = (code: string) => {
   }
 
   return {
-    attributes: attributes.trim(),
+    attributes: attributes?.trim() ?? "",
     endIndex: match.index + fullMatch.length,
     startIndex: match.index,
     tag: fullMatch,
@@ -105,7 +107,7 @@ const completeJsxTag = (code: string) => {
     // Include any text content before this tag
     result += code.slice(currentPosition, currentPosition + endIndex);
 
-    if (type === "opening") {
+    if (type === "opening" && tagName) {
       stack.push(tagName);
     } else if (type === "closing") {
       stack.pop();
@@ -117,8 +119,9 @@ const completeJsxTag = (code: string) => {
   return (
     result +
     stack
-      .toReversed()
-      .map((tag) => `</${tag}>`)
+      .slice()
+      .reverse()
+      .map((tag: string) => `</${tag}>`)
       .join("")
   );
 };
@@ -250,7 +253,7 @@ export const JSXPreviewContent = memo(
 
     return (
       <div className={cn("jsx-preview-content", className)} {...props}>
-        <JsxParser
+        <JsxParserComponent
           bindings={bindings}
           components={components}
           jsx={displayJsx}
