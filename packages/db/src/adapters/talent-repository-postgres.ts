@@ -6,21 +6,37 @@ import { Effect, Layer, Schema } from "effect";
 import { DrizzleClient } from "../client";
 import { talents } from "../schema/talents";
 
-const decodeTalent = Schema.decodeUnknownSync(Talent);
+type TalentRow = typeof talents.$inferSelect;
 
-const toDomain = (row: typeof talents.$inferSelect): Talent =>
-  decodeTalent({
-    id: row.id,
-    name: row.name,
-    title: row.title,
-    skills: row.skills,
-    keywords: row.keywords,
-    experienceYears: row.experienceYears,
-    location: row.location,
-    workModes: row.workModes,
-    willingToRelocate: row.willingToRelocate,
-    recruiterId: row.recruiterId,
-  });
+/**
+ * Compile-time safety: the return type is Encoded<Talent>, so if the
+ * domain model adds/removes/renames a field, this function will error
+ * until the mapping (and Drizzle schema) are updated.
+ *
+ * DB stores enums as plain strings — `decodeSync` validates them at
+ * runtime, so we widen string-enum fields via the Record index here.
+ */
+type TalentInput = {
+  [K in keyof Schema.Schema.Encoded<typeof Talent>]: K extends "workModes"
+    ? readonly string[]
+    : Schema.Schema.Encoded<typeof Talent>[K];
+};
+
+const toInput = (row: TalentRow): TalentInput => ({
+  id: row.id,
+  name: row.name,
+  title: row.title,
+  skills: row.skills,
+  keywords: row.keywords,
+  experienceYears: row.experienceYears,
+  location: row.location,
+  workModes: row.workModes,
+  willingToRelocate: row.willingToRelocate,
+  recruiterId: row.recruiterId,
+});
+
+const decodeTalent = Schema.decodeUnknownSync(Talent);
+const toDomain = (row: TalentRow): Talent => decodeTalent(toInput(row));
 
 export const TalentRepositoryPostgresLayer = Layer.effect(
   TalentRepository,

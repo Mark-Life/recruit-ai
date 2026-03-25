@@ -7,18 +7,29 @@ import { DrizzleClient } from "../client";
 import { recruiters } from "../schema/recruiters";
 import { talents } from "../schema/talents";
 
+type RecruiterEncoded = Schema.Schema.Encoded<typeof Recruiter>;
+type RecruiterRow = typeof recruiters.$inferSelect;
+
 const decodeRecruiter = Schema.decodeUnknownSync(Recruiter);
 
-const toDomain = (
-  row: typeof recruiters.$inferSelect,
+/**
+ * Compile-time check: every field required by the domain model
+ * must be present here. `talentIds` is derived via query, not stored.
+ * If the domain adds a field, this function produces a type error
+ * until the mapping is updated.
+ */
+const toEncoded = (
+  row: RecruiterRow,
   talentIds: readonly string[]
-): Recruiter =>
-  decodeRecruiter({
-    id: row.id,
-    name: row.name,
-    email: row.email,
-    talentIds,
-  });
+): RecruiterEncoded => ({
+  id: row.id,
+  name: row.name,
+  email: row.email,
+  talentIds,
+});
+
+const toDomain = (row: RecruiterRow, talentIds: readonly string[]): Recruiter =>
+  decodeRecruiter(toEncoded(row, talentIds));
 
 export const RecruiterRepositoryPostgresLayer = Layer.effect(
   RecruiterRepository,
