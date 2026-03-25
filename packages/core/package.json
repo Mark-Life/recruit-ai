@@ -1,5 +1,5 @@
 {
-  "name": "@workspace/env",
+  "name": "@workspace/core",
   "version": "0.0.1",
   "type": "module",
   "private": true,
@@ -8,12 +8,12 @@
     "typecheck": "tsc --noEmit"
   },
   "exports": {
-    "./web": "./src/web.ts"
+    "./domain/*": "./src/domain/*.ts",
+    "./ports/*": "./src/ports/*.ts",
+    "./services/*": "./src/services/*.ts"
   },
   "dependencies": {
-    "@t3-oss/env-nextjs": "^0.12.0",
-    "dotenv": "^16.5.0",
-    "zod": "^3.25.76"
+    "effect": "catalog:"
   },
   "devDependencies": {
     "@workspace/typescript-config": "workspace:*",

@@ -12,8 +12,9 @@
     "//#fix": {
       "cache": false
     },
-    "check-types": {
-      "dependsOn": ["^check-types"]
+    "lint": {},
+    "typecheck": {
+      "dependsOn": ["^typecheck"]
     },
     "dev": {
       "cache": false,
