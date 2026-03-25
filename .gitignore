@@ -37,3 +37,6 @@ npm-debug.log*
 
 # TypeScript
 *.tsbuildinfo
+
+# Datasets
+/datasets/**
