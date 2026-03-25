@@ -5,7 +5,9 @@
   "private": true,
   "scripts": {
     "lint": "bunx --bun ultracite check",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "exports": {
     "./domain/*": "./src/domain/*.ts",
@@ -16,7 +18,9 @@
     "effect": "catalog:"
   },
   "devDependencies": {
+    "@effect/vitest": "^0.29.0",
     "@workspace/typescript-config": "workspace:*",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.1"
   }
 }
