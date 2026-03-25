@@ -7,8 +7,8 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "next lint",
-    "lint:fix": "next lint --fix",
+    "lint": "bunx --bun ultracite check",
+    "lint:fix": "bunx --bun ultracite fix",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

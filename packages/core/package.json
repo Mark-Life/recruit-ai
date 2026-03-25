@@ -1,0 +1,26 @@
+{
+  "name": "@workspace/core",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "lint": "bunx --bun ultracite check",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "exports": {
+    "./domain/*": "./src/domain/*.ts",
+    "./ports/*": "./src/ports/*.ts",
+    "./services/*": "./src/services/*.ts"
+  },
+  "dependencies": {
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@effect/vitest": "^0.29.0",
+    "@workspace/typescript-config": "workspace:*",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.1"
+  }
+}

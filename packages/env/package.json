@@ -3,6 +3,10 @@
   "version": "0.0.1",
   "type": "module",
   "private": true,
+  "scripts": {
+    "lint": "bunx --bun ultracite check",
+    "typecheck": "tsc --noEmit"
+  },
   "exports": {
     "./web": "./src/web.ts"
   },
