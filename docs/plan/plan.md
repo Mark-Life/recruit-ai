@@ -12,12 +12,12 @@
 
 ## Phase 2: Database & Data Pipeline
 
-- [ ] Docker-compose with PostgreSQL + pgvector extension
-- [ ] Drizzle schema in adapter layer mapping to domain models (type-safe domain ↔ DB)
-- [ ] Drizzle migrations via `drizzle-kit`
-- [ ] TalentRepositoryPostgres and RecruiterRepositoryPostgres adapters
+- [x] Docker-compose with PostgreSQL + pgvector extension
+- [x] Drizzle schema in `packages/db` mapping to domain models (type-safe domain ↔ DB)
+- [x] Drizzle migrations via `drizzle-kit` (1.0.0-beta.19)
+- [x] TalentRepositoryPostgres and RecruiterRepositoryPostgres adapters
 - [ ] Seed script: parse `datasets/resume_data.csv` into Talent records
-- [ ] Database config as Effect Config service
+- [x] Database config as Effect Config service (`DatabaseConfig`, `DrizzleClient`)
 
 ## Phase 3: AI Adapters (Stories 1–3)
 
