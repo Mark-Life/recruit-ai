@@ -44,9 +44,14 @@ export function createTestStores(
 
 function makeLlmTestLayer(stores: TestStores) {
   return Layer.succeed(LlmPort, {
-    structureJd: (_raw: string) => Effect.succeed(stores.structuredJd),
+    structureJd: (_params: {
+      readonly raw: string;
+      readonly id: unknown;
+      readonly organizationId: unknown;
+    }) => Effect.succeed(stores.structuredJd),
     extractKeywords: (text: string) =>
       Effect.succeed(text.toLowerCase().split(WHITESPACE_PATTERN)),
+    generateClarifyingQuestions: (_raw: string) => Effect.succeed([]),
   });
 }
 

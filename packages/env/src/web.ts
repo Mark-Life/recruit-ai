@@ -7,8 +7,8 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "production", "test"])
       .default("development"),
-    // Add server env vars here
-    // DATABASE_URL: z.string().url(),
+    DATABASE_URL: z.string().url(),
+    GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1),
   },
   client: {
     // Add client env vars here (must be prefixed with NEXT_PUBLIC_)
@@ -16,9 +16,8 @@ export const env = createEnv({
   },
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
-    // Map all declared vars to process.env here
-    // DATABASE_URL: process.env.DATABASE_URL,
-    // NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    DATABASE_URL: process.env.DATABASE_URL,
+    GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
   },
   /**
    * Skip validation in docker builds or CI where env vars aren't available.
