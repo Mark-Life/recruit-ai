@@ -21,11 +21,16 @@
 
 ## Phase 3: AI Adapters (Stories 1–3)
 
-- [ ] EmbeddingPort adapter (Gemini Embeddings 2) — vectorize talent profiles and JDs
-- [ ] VectorSearchPort adapter (pgvector) — cosine similarity search over embeddings
-- [ ] LlmPort adapter — JD structuring (extract role, skills, constraints from raw text)
-- [ ] LlmPort adapter — clarifying question generation (Story 2)
-- [ ] ProfileIngestion service — ingest resumes, extract keywords, generate embeddings, store
+- [x] New `packages/ai` package with `@effect/ai` + `@effect/ai-google`
+- [x] AiConfig service (GEMINI_API_KEY, model names, embedding dimensions)
+- [x] EmbeddingPort adapter (Gemini `gemini-embedding-2-preview`, 3072 dims) — `packages/ai`
+- [x] VectorSearchPort adapter (pgvector cosine similarity) — `packages/db`
+- [x] LlmPort adapter (Gemini `gemini-2.0-flash`) — JD structuring via `generateObject`
+- [x] LlmPort — clarifying question generation (Story 2)
+- [x] ClarifyingQuestion domain model
+- [x] ProfileIngestion service — enrich talent profiles with keywords + embeddings
+- [x] Pre-composed layer wiring (`GeminiLlmLive`, `GeminiEmbeddingLive`)
+- [ ] Seed script: parse `datasets/resume_data.csv` into Talent records (deferred)
 
 ## Phase 4: API Layer (Stories 4–5)
 

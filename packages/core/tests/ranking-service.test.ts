@@ -118,7 +118,10 @@ describe("RankingService.rankTalents", () => {
 
     return Effect.gen(function* () {
       const ranking = yield* RankingService;
-      const matches = yield* ranking.rankTalents("any raw text");
+      const matches = yield* ranking.rankTalents(
+        "any raw text",
+        OrganizationId.make("org-1")
+      );
 
       expect(matches).toHaveLength(2);
       expect(matches[0]!.talentId).toBe(TalentId.make("t-1"));
@@ -142,7 +145,10 @@ describe("RankingService.rankTalents", () => {
 
     return Effect.gen(function* () {
       const ranking = yield* RankingService;
-      const matches = yield* ranking.rankTalents("any raw text");
+      const matches = yield* ranking.rankTalents(
+        "any raw text",
+        OrganizationId.make("org-1")
+      );
 
       expect(matches).toHaveLength(2);
       // Senior has react + typescript + next.js overlap vs JD's react + typescript + next.js
@@ -168,7 +174,10 @@ describe("RankingService.rankTalents", () => {
 
     return Effect.gen(function* () {
       const ranking = yield* RankingService;
-      const matches = yield* ranking.rankTalents("any raw text");
+      const matches = yield* ranking.rankTalents(
+        "any raw text",
+        OrganizationId.make("org-1")
+      );
 
       const seniorMatch = matches.find(
         (m) => m.talentId === TalentId.make("t-1")
@@ -197,7 +206,10 @@ describe("RankingService.rankTalents", () => {
 
     return Effect.gen(function* () {
       const ranking = yield* RankingService;
-      const matches = yield* ranking.rankTalents("any raw text");
+      const matches = yield* ranking.rankTalents(
+        "any raw text",
+        OrganizationId.make("org-1")
+      );
 
       const seniorMatch = matches.find(
         (m) => m.talentId === TalentId.make("t-1")
@@ -233,7 +245,10 @@ describe("RankingService.rankTalents", () => {
 
     return Effect.gen(function* () {
       const ranking = yield* RankingService;
-      const matches = yield* ranking.rankTalents("any raw text");
+      const matches = yield* ranking.rankTalents(
+        "any raw text",
+        OrganizationId.make("org-1")
+      );
 
       // Backend supports remote → full constraint fit
       const backendMatch = matches.find(
@@ -264,7 +279,10 @@ describe("RankingService.rankTalents", () => {
 
     return Effect.gen(function* () {
       const ranking = yield* RankingService;
-      const matches = yield* ranking.rankTalents("any raw text");
+      const matches = yield* ranking.rankTalents(
+        "any raw text",
+        OrganizationId.make("org-1")
+      );
 
       const seniorMatch = matches.find(
         (m) => m.talentId === TalentId.make("t-1")
@@ -283,7 +301,10 @@ describe("RankingService.rankTalents", () => {
 
     return Effect.gen(function* () {
       const ranking = yield* RankingService;
-      const matches = yield* ranking.rankTalents("any raw text");
+      const matches = yield* ranking.rankTalents(
+        "any raw text",
+        OrganizationId.make("org-1")
+      );
       expect(matches).toHaveLength(0);
     }).pipe(Effect.provide(makeTestLayer(stores)));
   });

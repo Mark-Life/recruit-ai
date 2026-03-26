@@ -1,5 +1,5 @@
 {
-  "name": "@workspace/core",
+  "name": "@workspace/ai",
   "version": "0.0.1",
   "type": "module",
   "private": true,
@@ -10,12 +10,17 @@
     "test:watch": "vitest"
   },
   "exports": {
-    "./domain/*": "./src/domain/*.ts",
-    "./ports/*": "./src/ports/*.ts",
-    "./services/*": "./src/services/*.ts"
+    "./adapters/*": "./src/adapters/*.ts",
+    "./clients/*": "./src/clients/*.ts",
+    "./config": "./src/config/ai-config.ts",
+    "./layers": "./src/layers.ts"
   },
   "dependencies": {
-    "effect": "catalog:"
+    "@ai-sdk/google": "^3.0.53",
+    "@workspace/core": "workspace:*",
+    "ai": "^6.0.138",
+    "effect": "catalog:",
+    "zod": "^3.25.0"
   },
   "devDependencies": {
     "@effect/vitest": "^0.29.0",

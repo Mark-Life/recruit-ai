@@ -5,6 +5,7 @@ import type {
   TalentNotFoundError,
   VectorSearchError,
 } from "../domain/errors";
+import type { JobDescriptionId, OrganizationId } from "../domain/models/ids";
 import type { Match } from "../domain/models/match";
 import { scoreTalents } from "../domain/scoring";
 import { EmbeddingPort } from "../ports/embedding-port";
@@ -27,7 +28,8 @@ export class RankingService extends Context.Tag("@recruit/RankingService")<
   RankingService,
   {
     readonly rankTalents: (
-      rawJd: string
+      rawJd: string,
+      organizationId: OrganizationId
     ) => Effect.Effect<readonly Match[], RankingError>;
   }
 >() {
@@ -41,9 +43,14 @@ export class RankingService extends Context.Tag("@recruit/RankingService")<
       const recruiters = yield* RecruiterRepository;
 
       return RankingService.of({
-        rankTalents: (rawJd: string) =>
+        rankTalents: (rawJd: string, organizationId: OrganizationId) =>
           Effect.gen(function* () {
-            const structured = yield* llm.structureJd(rawJd);
+            const id = crypto.randomUUID() as JobDescriptionId;
+            const structured = yield* llm.structureJd({
+              raw: rawJd,
+              id,
+              organizationId,
+            });
             const vector = yield* embedding.embed(structured.summary);
             const candidates = yield* vectorSearch.search(
               vector,
