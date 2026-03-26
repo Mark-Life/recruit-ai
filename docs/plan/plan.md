@@ -34,10 +34,16 @@
 
 ## Phase 4: API Layer (Stories 4–5)
 
-- [ ] oRPC procedure: submit raw JD → structured extraction
-- [ ] oRPC procedure: get clarifying questions for a JD
-- [ ] oRPC procedure: submit answers → trigger ranking → return matches
-- [ ] Wire RankingService into API routes with full Layer composition (`main.ts`)
+Using **Effect HTTP API** (`@effect/platform`) — schema-first, OpenAPI 3.1.0 from Effect schemas, handlers are native Effect programs. Chosen over oRPC to avoid Zod ↔ Effect Schema bridging and keep a single DI system.
+
+- [ ] `HttpApiEndpoint` + `HttpApiGroup` definitions for all routes (reusing domain `Schema.Class`)
+- [ ] `POST /api/jobs` — submit raw JD → structured extraction
+- [ ] `GET /api/jobs/:id/questions` — get clarifying questions for a JD
+- [ ] `POST /api/jobs/:id/answers` — submit answers → trigger ranking → return matches
+- [ ] `HttpApiBuilder.group` handlers wired to RankingService via Effect Context
+- [ ] Full Layer composition (`main.ts`) with `HttpApiBuilder.serve()` or `toWebHandler()` for Next.js
+- [ ] OpenAPI spec via `OpenApi.fromApi()` + Scalar/Swagger docs UI layer
+- [ ] Type-safe client via `HttpApiClient` for frontend consumption
 
 ## Phase 5: UI
 

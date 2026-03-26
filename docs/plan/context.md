@@ -75,7 +75,7 @@ DRIVING ADAPTERS              CORE              DRIVEN ADAPTERS
 
 - **Language**: TypeScript + Effect.ts
 - **Frontend**: Next.js
-- **Backend**: Next.js (API routes)
+- **Backend**: Effect HTTP API (`@effect/platform`) — schema-first routes with OpenAPI generation
 - **ORM**: Drizzle ORM (with Effect schema integration via `drizzle-orm/effect-schema`)
 - **Database**: PostgreSQL
 - **Vector DB**: pgvector (PostgreSQL extension)
