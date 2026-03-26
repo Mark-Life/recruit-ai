@@ -11,7 +11,13 @@
     "check": "bunx --bun ultracite check",
     "fix": "bunx --bun ultracite fix",
     "prepare": "husky && effect-language-service patch",
-    "upgrade": "bun run scripts/upgrade.ts"
+    "upgrade": "bun run scripts/upgrade.ts",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:generate": "bun run --cwd packages/db db:generate",
+    "db:migrate": "bun run --cwd packages/db db:migrate",
+    "db:push": "bun run --cwd packages/db db:push",
+    "db:studio": "bun run --cwd packages/db db:studio"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.0",
