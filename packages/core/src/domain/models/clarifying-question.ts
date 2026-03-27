@@ -38,3 +38,6 @@ export const ClarifyingQuestionsExtraction = Schema.Struct({
     })
   ),
 });
+
+export type ClarifyingQuestionsExtractionOutput =
+  typeof ClarifyingQuestionsExtraction.Type;

@@ -40,6 +40,8 @@ const seniorReactDev = Talent.make({
   workModes: ["office", "hybrid"],
   willingToRelocate: false,
   recruiterId: RecruiterId.make("rec-1"),
+  status: "reviewing",
+  createdAt: "2026-01-01T00:00:00.000Z",
 });
 
 const juniorReactDev = Talent.make({
@@ -53,6 +55,8 @@ const juniorReactDev = Talent.make({
   workModes: ["office", "hybrid", "remote"],
   willingToRelocate: true,
   recruiterId: RecruiterId.make("rec-1"),
+  status: "reviewing",
+  createdAt: "2026-01-01T00:00:00.000Z",
 });
 
 const backendEngineer = Talent.make({
@@ -66,6 +70,8 @@ const backendEngineer = Talent.make({
   workModes: ["remote"],
   willingToRelocate: false,
   recruiterId: RecruiterId.make("rec-2"),
+  status: "reviewing",
+  createdAt: "2026-01-01T00:00:00.000Z",
 });
 
 const reactJd = StructuredJd.make({
@@ -83,6 +89,8 @@ const reactJd = StructuredJd.make({
   willingToSponsorRelocation: false,
   experienceYearsMin: 4,
   experienceYearsMax: 8,
+  status: "ready",
+  createdAt: "2026-01-01T00:00:00.000Z",
 });
 
 function buildStores(

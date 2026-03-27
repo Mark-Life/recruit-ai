@@ -32,7 +32,7 @@ AI SDK streamText() + Output.object()
 
 ---
 
-## Phase 1: Domain Model Changes
+## Phase 1: Domain Model Changes [done ✅]
 
 ### 1a. Add status + createdAt to domain models
 
@@ -68,7 +68,7 @@ AI SDK streamText() + Output.object()
 
 ---
 
-## Phase 2: New & Extended Ports
+## Phase 2: New & Extended Ports [done ✅]
 
 **`packages/core/src/ports/job-description-repository.ts`** (new)
 ```
@@ -94,7 +94,7 @@ findByTalentId(id) → Match[]
 
 ---
 
-## Phase 3: New & Extended Adapters
+## Phase 3: New & Extended Adapters [done ✅]
 
 Follow the exact pattern from `talent-repository-postgres.ts`:
 - `TalentInput` type for compile-time safety
@@ -118,7 +118,7 @@ Follow the exact pattern from `talent-repository-postgres.ts`:
 
 ---
 
-## Phase 3b: LLM Adapter Streaming
+## Phase 3b: LLM Adapter Streaming [done ✅]
 
 ### LlmPort changes — `packages/core/src/ports/llm-port.ts`
 
@@ -166,7 +166,7 @@ streamStructureJd: (params) =>
 
 ---
 
-## Phase 4: Orchestration Services
+## Phase 4: Orchestration Services [done ✅]
 
 **`packages/core/src/services/job-orchestration-service.ts`** (new)
 

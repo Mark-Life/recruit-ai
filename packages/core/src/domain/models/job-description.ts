@@ -4,6 +4,14 @@ import { JdExtraction } from "./jd-extraction";
 
 export { EmploymentType, SeniorityLevel } from "./jd-extraction";
 
+export const JobStatus = Schema.Literal(
+  "draft",
+  "refining",
+  "matching",
+  "ready"
+);
+export type JobStatus = typeof JobStatus.Type;
+
 /** Raw JD after LLM structuring + clarifying answers merged */
 export class StructuredJd extends JdExtraction.extend<StructuredJd>(
   "StructuredJd"
@@ -11,4 +19,6 @@ export class StructuredJd extends JdExtraction.extend<StructuredJd>(
   id: JobDescriptionId,
   organizationId: OrganizationId,
   rawText: Schema.String,
+  status: JobStatus,
+  createdAt: Schema.String,
 }) {}

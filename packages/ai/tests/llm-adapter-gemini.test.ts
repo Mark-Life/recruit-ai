@@ -5,7 +5,7 @@ import {
 } from "@workspace/core/domain/models/ids";
 import { ResumeExtraction } from "@workspace/core/domain/models/resume-extraction";
 import { LlmPort } from "@workspace/core/ports/llm-port";
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Stream } from "effect";
 
 // ---------------------------------------------------------------------------
 // Mock data
@@ -81,6 +81,10 @@ const TestLayer = Layer.succeed(LlmPort, {
         willingToRelocate: false,
       })
     ),
+  streamStructureJd: () => Stream.succeed({}),
+  streamStructureResume: () => Stream.succeed({}),
+  streamStructureResumePdf: () => Stream.succeed({}),
+  streamClarifyingQuestions: () => Stream.succeed({ questions: [] }),
 });
 
 // ---------------------------------------------------------------------------
