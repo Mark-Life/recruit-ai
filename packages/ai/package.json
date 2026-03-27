@@ -6,8 +6,9 @@
   "scripts": {
     "lint": "bunx --bun ultracite check",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "with-env": "dotenv -e ../../.env.local --",
+    "test": "dotenv -e ../../.env.local -- vitest run",
+    "test:watch": "dotenv -e ../../.env.local -- vitest"
   },
   "exports": {
     "./adapters/*": "./src/adapters/*.ts",

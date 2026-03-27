@@ -59,19 +59,16 @@ Story 4 requires: "Talents that violate hard constraints (e.g. wrong geography, 
 - [x] Integration test: keeps talent in wrong location when relocation is viable
 - [x] Integration test: skips location filtering for remote JDs
 
-### Test Group 4: JD Refinement Pipeline 🔴 NOT IMPLEMENTED
+### Test Group 4: JD Refinement Pipeline ✅
 
 Story 2: system generates clarifying questions for missing JD info, user answers are merged back, enriched JD is structured.
 
-**What exists:**
-- [x] `generateClarifyingQuestions` adapter in `LlmAdapterGemini` (mock unit test only)
+- [x] `generateClarifyingQuestions` adapter in `LlmAdapterGemini`
 - [x] `ClarifyingQuestion` domain model
-
-**What's missing:**
-- [ ] Integration test: `generateClarifyingQuestions` with real Gemini API — verify it asks about missing work mode, location, etc. for an incomplete JD
-- [ ] Answer merging logic — take raw JD + user answers and produce enriched JD text (or patch `StructuredJd` fields directly)
-- [ ] `JdEnrichmentService` orchestration: raw JD → generate questions → (user answers) → merge → `structureJd` → `StructuredJd`
-- [ ] Integration test: full refinement pipeline — submit incomplete JD → get questions → provide answers → verify enriched `StructuredJd` has correct values
+- [x] `mergeAnswersIntoJd` pure function in `packages/core/src/domain/jd-enrichment.ts`
+- [x] `JdEnrichmentService` orchestration in `packages/core/src/services/jd-enrichment-service.ts`
+- [x] Integration test: `generateClarifyingQuestions` with real Gemini API (`packages/ai/tests/jd-refinement.test.ts`)
+- [x] Integration test: full refinement pipeline — incomplete JD → questions → answers → enriched `StructuredJd` with correct values
 
 ### Test Group 5: Profile Ingestion 🟡 NOT TESTED
 
@@ -88,9 +85,9 @@ Service exists (`ProfileIngestionService`) but has zero tests.
 | Resume structuring | ✅ Done | ✅ Integration test |
 | Full ranking pipeline | ✅ Done | ✅ Integration + 7 unit |
 | Hard constraint exclusion | ✅ Done | ✅ 4 integration tests |
-| Clarifying questions generation | ✅ Adapter done | 🟡 Mock test only |
-| Answer merging / JD enrichment | 🔴 Missing | 🔴 No tests |
-| Enrichment orchestration | 🔴 Missing | 🔴 No tests |
+| Clarifying questions generation | ✅ Done | ✅ Integration test |
+| Answer merging / JD enrichment | ✅ Done | ✅ Integration test |
+| Enrichment orchestration | ✅ Done | ✅ Integration test |
 | Profile ingestion | ✅ Service done | 🔴 No tests |
 
 ## Phase 4: API Layer (Stories 4–5)
