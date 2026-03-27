@@ -1,13 +1,13 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Inter } from "next/font/google";
 import type { ReactNode } from "react";
 
 import "@workspace/ui/globals.css";
+import { cn } from "@workspace/ui/lib/utils";
 import { Providers } from "@/components/providers";
 
-const fontSans = Geist({
-  subsets: ["latin"],
-  variable: "--font-sans",
-});
+const interHeading = Inter({ subsets: ["latin"], variable: "--font-heading" });
+
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 const fontMono = Geist_Mono({
   subsets: ["latin"],
@@ -22,7 +22,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${fontSans.variable} ${fontMono.variable} font-sans antialiased`}
+        className={cn(
+          geist.variable,
+          interHeading.variable,
+          fontMono.variable,
+          "font-sans antialiased"
+        )}
       >
         <Providers>{children}</Providers>
       </body>
