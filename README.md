@@ -53,6 +53,15 @@ DRIVING ADAPTERS              CORE              DRIVEN ADAPTERS
 - **Linting/Formatting**: Ultracite (Biome)
 - **UI**: shadcn/ui + Tailwind CSS
 
+## Documentation
+
+| Document | Description |
+| --- | --- |
+| [`docs/plan/context.md`](docs/plan/context.md) | Project vision and domain context |
+| [`docs/plan/plan.md`](docs/plan/plan.md) | Implementation plan and phases |
+| [`docs/plan/stories.md`](docs/plan/stories.md) | UX stories for the POC |
+| [`docs/plan/datasets.md`](docs/plan/datasets.md) | Training and evaluation datasets |
+
 ## Getting Started
 
 ```bash
