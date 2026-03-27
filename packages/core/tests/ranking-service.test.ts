@@ -105,14 +105,15 @@ function buildStores(
 
 describe("RankingService.rankTalents", () => {
   it.effect("ranks matching talent above non-matching", () => {
+    // Both talents support hybrid (JD work mode) and are in Berlin (JD location)
     const candidates: readonly VectorCandidate[] = [
       { talentId: TalentId.make("t-1"), similarity: 0.92 },
-      { talentId: TalentId.make("t-3"), similarity: 0.45 },
+      { talentId: TalentId.make("t-2"), similarity: 0.45 },
     ];
     const stores = buildStores(
       reactJd,
-      [seniorReactDev, backendEngineer],
-      [recruiterAlice, recruiterBob],
+      [seniorReactDev, juniorReactDev],
+      [recruiterAlice],
       candidates
     );
 
@@ -125,7 +126,7 @@ describe("RankingService.rankTalents", () => {
 
       expect(matches).toHaveLength(2);
       expect(matches[0]!.talentId).toBe(TalentId.make("t-1"));
-      expect(matches[1]!.talentId).toBe(TalentId.make("t-3"));
+      expect(matches[1]!.talentId).toBe(TalentId.make("t-2"));
       expect(matches[0]!.totalScore).toBeGreaterThan(matches[1]!.totalScore);
     }).pipe(Effect.provide(makeTestLayer(stores)));
   });
@@ -191,8 +192,8 @@ describe("RankingService.rankTalents", () => {
     }).pipe(Effect.provide(makeTestLayer(stores)));
   });
 
-  it.effect("work mode mismatch reduces constraint score", () => {
-    // JD wants hybrid, backend engineer only does remote
+  it.effect("work mode mismatch excludes talent via hard constraint", () => {
+    // JD wants hybrid, backend engineer only does remote → excluded entirely
     const candidates: readonly VectorCandidate[] = [
       { talentId: TalentId.make("t-1"), similarity: 0.7 },
       { talentId: TalentId.make("t-3"), similarity: 0.7 },
@@ -211,27 +212,20 @@ describe("RankingService.rankTalents", () => {
         OrganizationId.make("org-1")
       );
 
-      const seniorMatch = matches.find(
-        (m) => m.talentId === TalentId.make("t-1")
-      )!;
-      const backendMatch = matches.find(
-        (m) => m.talentId === TalentId.make("t-3")
-      )!;
-
-      // Senior supports hybrid (matches JD), backend only remote (no match)
-      expect(seniorMatch.breakdown.constraintFit).toBeGreaterThan(
-        backendMatch.breakdown.constraintFit
-      );
+      // Backend engineer excluded — only senior remains
+      expect(matches).toHaveLength(1);
+      expect(matches[0]!.talentId).toBe(TalentId.make("t-1"));
     }).pipe(Effect.provide(makeTestLayer(stores)));
   });
 
-  it.effect("remote JD gives full location score to all", () => {
+  it.effect("remote JD excludes talent that does not support remote", () => {
     const remoteJd = StructuredJd.make({
       ...reactJd,
       id: JobDescriptionId.make("jd-remote"),
       workMode: "remote",
       location: "Worldwide",
     });
+    // Senior only does office/hybrid, backend does remote
     const candidates: readonly VectorCandidate[] = [
       { talentId: TalentId.make("t-1"), similarity: 0.8 },
       { talentId: TalentId.make("t-3"), similarity: 0.8 },
@@ -250,25 +244,60 @@ describe("RankingService.rankTalents", () => {
         OrganizationId.make("org-1")
       );
 
+      // Senior doesn't support remote → excluded by hard constraint
+      expect(matches).toHaveLength(1);
+      expect(matches[0]!.talentId).toBe(TalentId.make("t-3"));
       // Backend supports remote → full constraint fit
-      const backendMatch = matches.find(
-        (m) => m.talentId === TalentId.make("t-3")
-      )!;
-      expect(backendMatch.breakdown.constraintFit).toBe(1);
-
-      // Senior doesn't list remote in workModes → location passes (remote auto-pass)
-      // but work mode check fails → 0.5 constraint fit
-      const seniorMatch = matches.find(
-        (m) => m.talentId === TalentId.make("t-1")
-      )!;
-      expect(seniorMatch.breakdown.constraintFit).toBe(0.5);
+      expect(matches[0]!.breakdown.constraintFit).toBe(1);
     }).pipe(Effect.provide(makeTestLayer(stores)));
   });
 
   it.effect("returns correct recruiter mapping", () => {
+    // Both talents pass hard constraints (hybrid + Berlin)
     const candidates: readonly VectorCandidate[] = [
       { talentId: TalentId.make("t-1"), similarity: 0.9 },
-      { talentId: TalentId.make("t-3"), similarity: 0.5 },
+      { talentId: TalentId.make("t-2"), similarity: 0.5 },
+    ];
+    const stores = buildStores(
+      reactJd,
+      [seniorReactDev, juniorReactDev],
+      [recruiterAlice],
+      candidates
+    );
+
+    return Effect.gen(function* () {
+      const ranking = yield* RankingService;
+      const matches = yield* ranking.rankTalents(
+        "any raw text",
+        OrganizationId.make("org-1")
+      );
+
+      // Both covered by recruiter Alice (rec-1)
+      expect(matches[0]!.recruiterId).toBe(RecruiterId.make("rec-1"));
+      expect(matches[1]!.recruiterId).toBe(RecruiterId.make("rec-1"));
+    }).pipe(Effect.provide(makeTestLayer(stores)));
+  });
+
+  it.effect("returns empty results when no candidates", () => {
+    const stores = buildStores(reactJd, [], [recruiterAlice], []);
+
+    return Effect.gen(function* () {
+      const ranking = yield* RankingService;
+      const matches = yield* ranking.rankTalents(
+        "any raw text",
+        OrganizationId.make("org-1")
+      );
+      expect(matches).toHaveLength(0);
+    }).pipe(Effect.provide(makeTestLayer(stores)));
+  });
+
+  // --- Hard constraint filtering ---
+
+  it.effect("excludes talent with incompatible work mode", () => {
+    // JD wants hybrid, backend engineer only does remote → excluded
+    const candidates: readonly VectorCandidate[] = [
+      { talentId: TalentId.make("t-1"), similarity: 0.9 },
+      { talentId: TalentId.make("t-3"), similarity: 0.9 },
     ];
     const stores = buildStores(
       reactJd,
@@ -284,20 +313,44 @@ describe("RankingService.rankTalents", () => {
         OrganizationId.make("org-1")
       );
 
-      const seniorMatch = matches.find(
-        (m) => m.talentId === TalentId.make("t-1")
-      )!;
-      const backendMatch = matches.find(
-        (m) => m.talentId === TalentId.make("t-3")
-      )!;
-
-      expect(seniorMatch.recruiterId).toBe(RecruiterId.make("rec-1"));
-      expect(backendMatch.recruiterId).toBe(RecruiterId.make("rec-2"));
+      expect(matches).toHaveLength(1);
+      expect(matches[0]!.talentId).toBe(TalentId.make("t-1"));
     }).pipe(Effect.provide(makeTestLayer(stores)));
   });
 
-  it.effect("returns empty results when no candidates", () => {
-    const stores = buildStores(reactJd, [], [recruiterAlice], []);
+  it.effect("excludes talent in wrong location without relocation", () => {
+    // JD is Berlin office, talent is in London and won't relocate → excluded
+    const officeJd = StructuredJd.make({
+      ...reactJd,
+      id: JobDescriptionId.make("jd-office"),
+      workMode: "office",
+      willingToSponsorRelocation: false,
+    });
+    const londonTalent = Talent.make({
+      ...seniorReactDev,
+      id: TalentId.make("t-london"),
+      location: "London",
+      workModes: ["office", "hybrid"],
+      willingToRelocate: false,
+      recruiterId: RecruiterId.make("rec-1"),
+    });
+    const berlinTalent = Talent.make({
+      ...seniorReactDev,
+      id: TalentId.make("t-berlin"),
+      location: "Berlin",
+      workModes: ["office", "hybrid"],
+      recruiterId: RecruiterId.make("rec-1"),
+    });
+    const candidates: readonly VectorCandidate[] = [
+      { talentId: TalentId.make("t-london"), similarity: 0.95 },
+      { talentId: TalentId.make("t-berlin"), similarity: 0.8 },
+    ];
+    const stores = buildStores(
+      officeJd,
+      [londonTalent, berlinTalent],
+      [recruiterAlice],
+      candidates
+    );
 
     return Effect.gen(function* () {
       const ranking = yield* RankingService;
@@ -305,7 +358,76 @@ describe("RankingService.rankTalents", () => {
         "any raw text",
         OrganizationId.make("org-1")
       );
-      expect(matches).toHaveLength(0);
+
+      expect(matches).toHaveLength(1);
+      expect(matches[0]!.talentId).toBe(TalentId.make("t-berlin"));
+    }).pipe(Effect.provide(makeTestLayer(stores)));
+  });
+
+  it.effect("keeps talent in wrong location when relocation is viable", () => {
+    const officeJd = StructuredJd.make({
+      ...reactJd,
+      id: JobDescriptionId.make("jd-reloc"),
+      workMode: "office",
+      willingToSponsorRelocation: true,
+    });
+    const londonTalent = Talent.make({
+      ...seniorReactDev,
+      id: TalentId.make("t-london-reloc"),
+      location: "London",
+      workModes: ["office", "hybrid"],
+      willingToRelocate: true,
+      recruiterId: RecruiterId.make("rec-1"),
+    });
+    const candidates: readonly VectorCandidate[] = [
+      { talentId: TalentId.make("t-london-reloc"), similarity: 0.9 },
+    ];
+    const stores = buildStores(
+      officeJd,
+      [londonTalent],
+      [recruiterAlice],
+      candidates
+    );
+
+    return Effect.gen(function* () {
+      const ranking = yield* RankingService;
+      const matches = yield* ranking.rankTalents(
+        "any raw text",
+        OrganizationId.make("org-1")
+      );
+
+      expect(matches).toHaveLength(1);
+      expect(matches[0]!.talentId).toBe(TalentId.make("t-london-reloc"));
+    }).pipe(Effect.provide(makeTestLayer(stores)));
+  });
+
+  it.effect("skips location filtering for remote JDs", () => {
+    const remoteJd = StructuredJd.make({
+      ...reactJd,
+      id: JobDescriptionId.make("jd-remote-filter"),
+      workMode: "remote",
+      location: "Worldwide",
+    });
+    // Backend engineer is remote-only and in London — should pass for remote JD
+    const candidates: readonly VectorCandidate[] = [
+      { talentId: TalentId.make("t-3"), similarity: 0.8 },
+    ];
+    const stores = buildStores(
+      remoteJd,
+      [backendEngineer],
+      [recruiterBob],
+      candidates
+    );
+
+    return Effect.gen(function* () {
+      const ranking = yield* RankingService;
+      const matches = yield* ranking.rankTalents(
+        "any raw text",
+        OrganizationId.make("org-1")
+      );
+
+      expect(matches).toHaveLength(1);
+      expect(matches[0]!.talentId).toBe(TalentId.make("t-3"));
     }).pipe(Effect.provide(makeTestLayer(stores)));
   });
 });

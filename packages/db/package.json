@@ -6,6 +6,7 @@
   "scripts": {
     "lint": "bunx --bun ultracite check",
     "typecheck": "tsc --noEmit",
+    "with-env": "dotenv -e ../../.env.local --",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",

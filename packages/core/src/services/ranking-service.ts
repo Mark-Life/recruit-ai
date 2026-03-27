@@ -7,7 +7,7 @@ import type {
 } from "../domain/errors";
 import type { JobDescriptionId, OrganizationId } from "../domain/models/ids";
 import type { Match } from "../domain/models/match";
-import { scoreTalents } from "../domain/scoring";
+import { filterByHardConstraints, scoreTalents } from "../domain/scoring";
 import { EmbeddingPort } from "../ports/embedding-port";
 import { LlmPort } from "../ports/llm-port";
 import { RecruiterRepository } from "../ports/recruiter-repository";
@@ -63,7 +63,8 @@ export class RankingService extends Context.Tag("@recruit/RankingService")<
               { concurrency: FETCH_CONCURRENCY }
             );
 
-            const scored = scoreTalents(structured, fullTalents, candidates);
+            const eligible = filterByHardConstraints(structured, fullTalents);
+            const scored = scoreTalents(structured, eligible, candidates);
             const topTalents = scored.slice(0, MAX_RESULTS);
 
             yield* recruiters.findByTalentIds(
