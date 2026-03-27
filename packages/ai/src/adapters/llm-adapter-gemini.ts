@@ -9,6 +9,7 @@ import { AiConfig } from "../config/ai-config";
 
 // ---------------------------------------------------------------------------
 // Zod schemas for LLM extraction
+// TODO: swap for effect schema (ai v6 supports it)
 // ---------------------------------------------------------------------------
 
 const LlmExtractedJdSchema = z.object({

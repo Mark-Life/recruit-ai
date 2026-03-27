@@ -32,6 +32,65 @@
 - [x] Pre-composed layer wiring (`GeminiLlmLive`, `GeminiEmbeddingLive`)
 - [ ] Seed script: parse `datasets/resume_data.csv` into Talent records (deferred)
 
+## Phase 3.5: Backend Integration Testing & Missing Logic
+
+Goal: broad integration tests grouped by story/feature area, validating the full backend pipeline before building the API layer.
+
+### Test Group 1: Embedding Similarity ✅
+
+Validates that semantic embeddings produce correct similarity rankings.
+
+- [x] Integration test: ranks senior frontend > senior backend > veterinarian by cosine similarity (`packages/ai/tests/embedding.test.ts`)
+
+### Test Group 2: Full Ranking Pipeline ✅
+
+End-to-end: JD structuring → resume structuring → embedding → scoring → ranked matches.
+
+- [x] Integration test: full pipeline with real Gemini API, verifies ranking order + score breakdown (`packages/ai/tests/ranking.test.ts`)
+- [x] Core scoring unit tests: 7 tests covering keyword overlap, experience fit, work mode constraints, remote handling, recruiter mapping, empty results (`packages/core/tests/ranking-service.test.ts`)
+
+### Test Group 3: Hard Constraint Filtering 🔴 NOT IMPLEMENTED
+
+Story 4 requires: "Talents that violate hard constraints (e.g. wrong geography, no relocation) are excluded." Currently, constraint mismatches only produce a lower score (15% weight penalty) but never exclude candidates.
+
+- [ ] Implement hard constraint exclusion in scoring/ranking (location mismatch + no relocation = exclude, work mode mismatch = exclude)
+- [ ] Integration test: candidate in wrong country with no relocation is excluded from results
+- [ ] Integration test: candidate with incompatible work mode is excluded
+
+### Test Group 4: JD Refinement Pipeline 🔴 NOT IMPLEMENTED
+
+Story 2: system generates clarifying questions for missing JD info, user answers are merged back, enriched JD is structured.
+
+**What exists:**
+- [x] `generateClarifyingQuestions` adapter in `LlmAdapterGemini` (mock unit test only)
+- [x] `ClarifyingQuestion` domain model
+
+**What's missing:**
+- [ ] Integration test: `generateClarifyingQuestions` with real Gemini API — verify it asks about missing work mode, location, etc. for an incomplete JD
+- [ ] Answer merging logic — take raw JD + user answers and produce enriched JD text (or patch `StructuredJd` fields directly)
+- [ ] `JdEnrichmentService` orchestration: raw JD → generate questions → (user answers) → merge → `structureJd` → `StructuredJd`
+- [ ] Integration test: full refinement pipeline — submit incomplete JD → get questions → provide answers → verify enriched `StructuredJd` has correct values
+
+### Test Group 5: Profile Ingestion 🟡 NOT TESTED
+
+Service exists (`ProfileIngestionService`) but has zero tests.
+
+- [ ] Integration test: enrich a talent profile → verify extracted keywords are reasonable + embedding is generated
+
+### Summary
+
+| Area | Implementation | Tests |
+|------|---------------|-------|
+| Embedding similarity | ✅ Done | ✅ Integration test |
+| JD structuring | ✅ Done | ✅ Unit + integration |
+| Resume structuring | ✅ Done | ✅ Integration test |
+| Full ranking pipeline | ✅ Done | ✅ Integration + 7 unit |
+| Hard constraint exclusion | 🔴 Missing | 🔴 No tests |
+| Clarifying questions generation | ✅ Adapter done | 🟡 Mock test only |
+| Answer merging / JD enrichment | 🔴 Missing | 🔴 No tests |
+| Enrichment orchestration | 🔴 Missing | 🔴 No tests |
+| Profile ingestion | ✅ Service done | 🔴 No tests |
+
 ## Phase 4: API Layer (Stories 4–5)
 
 Using **Effect HTTP API** (`@effect/platform`) — schema-first, OpenAPI 3.1.0 from Effect schemas, handlers are native Effect programs. Chosen over oRPC to avoid Zod ↔ Effect Schema bridging and keep a single DI system.
