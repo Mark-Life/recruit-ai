@@ -1,64 +1,85 @@
-# Next.js Monorepo Template
+# Recruit AI
 
-A turborepo-based monorepo template with Next.js, shadcn/ui, and strict code quality via Ultracite.
+AI-driven recruitment platform that matches job descriptions to the best-fitting talents and their covering recruiters.
 
-## What's Inside
+## Architecture
 
-- `apps/web` — Next.js application
-- `packages/ui` — shared shadcn/ui component library
-- `packages/typescript-config` — shared TypeScript configs
+Hexagonal (Ports & Adapters) with Effect.ts. Core business logic has zero infrastructure dependencies — external systems are accessed through ports (interfaces) and adapters (implementations).
 
-## Stack
+```
+DRIVING ADAPTERS              CORE              DRIVEN ADAPTERS
 
-- **Runtime**: Bun
-- **Build**: Turborepo
+┌──────────────┐         ┌──────────┐      ┌─────────────────────┐
+│ REST API     │────────>│          │─────>│ LLM Provider        │
+└──────────────┘         │          │      └─────────────────────┘
+                         │          │      ┌─────────────────────┐
+                         │  Domain  │─────>│ Embedding Provider  │
+                         │  Core    │      │ (Gemini)            │
+                         │          │      └─────────────────────┘
+                         │          │      ┌─────────────────────┐
+                         │          │─────>│ Vector Search       │
+                         │          │      │ (pgvector)          │
+                         │          │      └─────────────────────┘
+                         │          │      ┌─────────────────────┐
+                         │          │─────>│ Database            │
+                         └──────────┘      │ (PostgreSQL)        │
+                                           └─────────────────────┘
+```
+
+## Packages
+
+
+| Package                      | Description                                                |
+| ---------------------------- | ---------------------------------------------------------- |
+| `apps/web`                   | Next.js frontend                                           |
+| `packages/core`              | Domain models, ports, scoring logic, orchestration         |
+| `packages/db`                | Drizzle schema, migrations, PostgreSQL repository adapters |
+| `packages/ai`                | LLM and embedding adapters (Gemini via Vercel AI SDK)      |
+| `packages/api`               | Effect HTTP API layer                                      |
+| `packages/ui`                | Shared shadcn/ui component library                         |
+| `packages/env`               | Environment variable validation                            |
+| `packages/typescript-config` | Shared TypeScript configs                                  |
+
+
+## Tech Stack
+
+- **Language**: TypeScript + Effect.ts
+- **Frontend**: Next.js
+- **Backend**: Effect HTTP API (`@effect/platform`)
+- **ORM**: Drizzle ORM
+- **Database**: PostgreSQL + pgvector
+- **Embeddings**: Gemini Embeddings
+- **Build**: Turborepo + Bun
 - **Linting/Formatting**: Ultracite (Biome)
 - **UI**: shadcn/ui + Tailwind CSS
-- **Pre-commit**: Husky + Ultracite
 
-## Create a New Project
-
-Using GitHub CLI:
+## Getting Started
 
 ```bash
-gh repo create my-app --template Mark-Life/netxjs-monorepo --private --clone
-cd my-app
 bun install
-bun run upgrade
 ```
 
-Or from GitHub UI: click **"Use this template"** > **"Create a new repository"**, then:
+Start PostgreSQL with pgvector:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/my-app.git
-cd my-app
-bun install
-bun run upgrade
+docker compose up -d
 ```
 
-The `upgrade` command updates Next.js, refreshes all shadcn/ui components, updates dependencies, and runs lint fixes.
+Run in dev mode:
+
+```bash
+bun dev
+```
 
 ## Commands
 
-| Command | Description |
-| --- | --- |
-| `bun dev` | Start all apps in dev mode |
-| `bun run build` | Build all apps and packages |
-| `bun run lint` | Lint all apps and packages |
-| `bun run fix` | Auto-fix formatting and lint issues |
-| `bun run check` | Check for lint/format issues |
-| `bun run upgrade` | Upgrade Next.js, shadcn/ui, and all deps |
 
-## Adding Components
+| Command         | Description                         |
+| --------------- | ----------------------------------- |
+| `bun dev`       | Start all apps in dev mode          |
+| `bun run build` | Build all apps and packages         |
+| `bun run lint`  | Lint all apps and packages          |
+| `bun run fix`   | Auto-fix formatting and lint issues |
+| `bun run check` | Check for lint/format issues        |
 
-Add shadcn/ui components to the shared `ui` package:
 
-```bash
-bunx shadcn@latest add button -c packages/ui
-```
-
-Then import from `@workspace/ui`:
-
-```tsx
-import { Button } from "@workspace/ui/components/button"
-```
