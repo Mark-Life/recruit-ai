@@ -22,5 +22,8 @@ export class LlmPort extends Context.Tag("@recruit/LlmPort")<
     readonly structureResume: (
       text: string
     ) => Effect.Effect<ResumeExtraction, LlmError>;
+    readonly structureResumePdf: (
+      pdf: Uint8Array
+    ) => Effect.Effect<ResumeExtraction, LlmError>;
   }
 >() {}

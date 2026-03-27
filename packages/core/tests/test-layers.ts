@@ -66,6 +66,19 @@ function makeLlmTestLayer(stores: TestStores) {
           willingToRelocate: false,
         })
       ),
+    structureResumePdf: (_pdf: Uint8Array) =>
+      Effect.succeed(
+        ResumeExtraction.make({
+          name: "Test Talent",
+          title: "Engineer",
+          skills: ["TypeScript"],
+          keywords: ["engineering"],
+          experienceYears: 5,
+          location: "Unknown",
+          workModes: ["remote"],
+          willingToRelocate: false,
+        })
+      ),
   });
 }
 

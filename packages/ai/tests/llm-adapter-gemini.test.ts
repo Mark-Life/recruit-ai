@@ -68,6 +68,19 @@ const TestLayer = Layer.succeed(LlmPort, {
         willingToRelocate: false,
       })
     ),
+  structureResumePdf: (_pdf: Uint8Array) =>
+    Effect.succeed(
+      ResumeExtraction.make({
+        name: "Test User",
+        title: "Engineer",
+        skills: ["TypeScript"],
+        keywords: ["engineering"],
+        experienceYears: 5,
+        location: "Unknown",
+        workModes: ["remote"],
+        willingToRelocate: false,
+      })
+    ),
 });
 
 // ---------------------------------------------------------------------------

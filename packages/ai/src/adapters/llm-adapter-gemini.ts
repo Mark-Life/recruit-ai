@@ -12,7 +12,10 @@ import {
   structureJdPrompt,
 } from "@workspace/core/prompts/jd-prompts";
 import { extractKeywordsPrompt } from "@workspace/core/prompts/keyword-prompts";
-import { structureResumePrompt } from "@workspace/core/prompts/resume-prompts";
+import {
+  structureResumePdfPrompt,
+  structureResumePrompt,
+} from "@workspace/core/prompts/resume-prompts";
 import { generateText, Output } from "ai";
 import { Effect, Layer } from "effect";
 import { GoogleAiClient } from "../clients/google-ai-client";
@@ -127,6 +130,39 @@ export const LlmAdapterGeminiLayer = Layer.effect(
                 })
             ),
             Effect.withSpan("llm.structureResume")
+          ),
+
+      structureResumePdf: (pdf) =>
+        ai
+          .use((google) =>
+            generateText({
+              model: google(config.languageModel),
+              output: Output.object({ schema: resumeExtractionSchema }),
+              messages: [
+                {
+                  role: "user",
+                  content: [
+                    { type: "text", text: structureResumePdfPrompt },
+                    {
+                      type: "file",
+                      mediaType: "application/pdf",
+                      data: pdf,
+                    },
+                  ],
+                },
+              ],
+            })
+          )
+          .pipe(
+            Effect.map(({ output }) => ResumeExtraction.make(output)),
+            Effect.mapError(
+              (cause) =>
+                new LlmError({
+                  message: "Failed to structure resume PDF",
+                  cause,
+                })
+            ),
+            Effect.withSpan("llm.structureResumePdf")
           ),
     });
   })
