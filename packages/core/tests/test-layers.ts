@@ -52,6 +52,17 @@ function makeLlmTestLayer(stores: TestStores) {
     extractKeywords: (text: string) =>
       Effect.succeed(text.toLowerCase().split(WHITESPACE_PATTERN)),
     generateClarifyingQuestions: (_raw: string) => Effect.succeed([]),
+    structureResume: (_text: string) =>
+      Effect.succeed({
+        name: "Test Talent",
+        title: "Engineer",
+        skills: ["TypeScript"],
+        keywords: ["engineering"],
+        experienceYears: 5,
+        location: "Unknown",
+        workModes: ["remote" as const],
+        willingToRelocate: false,
+      }),
   });
 }
 

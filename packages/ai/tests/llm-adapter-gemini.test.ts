@@ -54,6 +54,17 @@ const TestLayer = Layer.succeed(LlmPort, {
   extractKeywords: (_text: string) => Effect.succeed(MOCK_KEYWORDS),
   generateClarifyingQuestions: (_raw: string) =>
     Effect.succeed(MOCK_QUESTIONS as any),
+  structureResume: (_text: string) =>
+    Effect.succeed({
+      name: "Test User",
+      title: "Engineer",
+      skills: ["TypeScript"],
+      keywords: ["engineering"],
+      experienceYears: 5,
+      location: "Unknown",
+      workModes: ["remote" as const],
+      willingToRelocate: false,
+    }),
 });
 
 // ---------------------------------------------------------------------------
