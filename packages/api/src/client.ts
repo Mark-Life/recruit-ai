@@ -1,12 +1,8 @@
-import { createORPCClient } from "@orpc/client";
-import { RPCLink } from "@orpc/client/fetch";
-import type { RouterClient } from "@orpc/server";
-import type { Router } from "./router";
+import { FetchHttpClient, HttpApiClient } from "@effect/platform";
+import { Effect } from "effect";
+import { AppApi } from "./api";
 
-/** Create a typed oRPC client pointing at the given base URL */
-export const createClient = (baseUrl: string): RouterClient<Router> => {
-  const link = new RPCLink({
-    url: `${baseUrl}/rpc`,
-  });
-  return createORPCClient(link);
-};
+export const makeClient = (baseUrl: string) =>
+  HttpApiClient.make(AppApi, { baseUrl }).pipe(
+    Effect.provide(FetchHttpClient.layer)
+  );

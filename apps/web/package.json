@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@orpc/server": "^1.13.5",
+    "@effect/platform": "catalog:",
     "@workspace/api": "workspace:*",
     "@workspace/env": "workspace:*",
     "@workspace/ui": "workspace:*",

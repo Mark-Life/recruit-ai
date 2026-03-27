@@ -4,7 +4,8 @@
   "type": "module",
   "private": true,
   "exports": {
-    "./router": "./src/router.ts",
+    "./api": "./src/api.ts",
+    "./server": "./src/server.ts",
     "./client": "./src/client.ts"
   },
   "scripts": {
@@ -12,9 +13,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@orpc/client": "^1.13.5",
-    "@orpc/server": "^1.13.5",
-    "zod": "^3.25.76"
+    "effect": "catalog:",
+    "@effect/platform": "catalog:"
   },
   "devDependencies": {
     "@workspace/typescript-config": "workspace:*",
