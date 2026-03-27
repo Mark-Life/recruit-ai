@@ -5,6 +5,7 @@ import {
 } from "../src/domain/errors";
 import type { StructuredJd } from "../src/domain/models/job-description";
 import type { Recruiter } from "../src/domain/models/recruiter";
+import { ResumeExtraction } from "../src/domain/models/resume-extraction";
 import type { Talent } from "../src/domain/models/talent";
 import { EmbeddingPort } from "../src/ports/embedding-port";
 import { LlmPort } from "../src/ports/llm-port";
@@ -53,16 +54,18 @@ function makeLlmTestLayer(stores: TestStores) {
       Effect.succeed(text.toLowerCase().split(WHITESPACE_PATTERN)),
     generateClarifyingQuestions: (_raw: string) => Effect.succeed([]),
     structureResume: (_text: string) =>
-      Effect.succeed({
-        name: "Test Talent",
-        title: "Engineer",
-        skills: ["TypeScript"],
-        keywords: ["engineering"],
-        experienceYears: 5,
-        location: "Unknown",
-        workModes: ["remote" as const],
-        willingToRelocate: false,
-      }),
+      Effect.succeed(
+        ResumeExtraction.make({
+          name: "Test Talent",
+          title: "Engineer",
+          skills: ["TypeScript"],
+          keywords: ["engineering"],
+          experienceYears: 5,
+          location: "Unknown",
+          workModes: ["remote"],
+          willingToRelocate: false,
+        })
+      ),
   });
 }
 

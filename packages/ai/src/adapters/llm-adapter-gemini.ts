@@ -1,114 +1,26 @@
 import { LlmError } from "@workspace/core/domain/errors";
+import { ClarifyingQuestionsExtraction } from "@workspace/core/domain/models/clarifying-question";
+import {
+  JdExtraction,
+  KeywordsExtraction,
+} from "@workspace/core/domain/models/jd-extraction";
 import { StructuredJd } from "@workspace/core/domain/models/job-description";
+import { ResumeExtraction } from "@workspace/core/domain/models/resume-extraction";
 import { LlmPort } from "@workspace/core/ports/llm-port";
 import { generateText, Output } from "ai";
 import { Effect, Layer } from "effect";
-import { z } from "zod";
 import { GoogleAiClient } from "../clients/google-ai-client";
 import { AiConfig } from "../config/ai-config";
+import { toAiSchema } from "./effect-schema-bridge";
 
 // ---------------------------------------------------------------------------
-// Zod schemas for LLM extraction
-// TODO: swap for effect schema (ai v6 supports it)
+// Effect Schema → AI SDK bridged schemas
 // ---------------------------------------------------------------------------
 
-const LlmExtractedJdSchema = z.object({
-  summary: z.string().describe("A 1-2 sentence summary of the job description"),
-  roleTitle: z
-    .string()
-    .describe("The job title, e.g. 'Senior Frontend Engineer'"),
-  skills: z
-    .array(z.string())
-    .describe(
-      "Normalized technology/skill tags, e.g. ['React', 'TypeScript', 'Node.js']"
-    ),
-  keywords: z
-    .array(z.string())
-    .describe(
-      "Additional relevant keywords for matching, e.g. ['frontend', 'SPA', 'UI']"
-    ),
-  seniority: z
-    .enum(["junior", "mid", "senior", "lead", "principal"])
-    .describe("Seniority level"),
-  employmentType: z
-    .enum(["full-time", "contract", "freelance"])
-    .describe("Employment type"),
-  workMode: z.enum(["office", "hybrid", "remote"]).describe("Work mode"),
-  location: z
-    .string()
-    .describe(
-      "Work location or 'Worldwide' for remote roles with no geographic constraint"
-    ),
-  willingToSponsorRelocation: z
-    .boolean()
-    .describe("Whether the company offers relocation sponsorship"),
-  experienceYearsMin: z
-    .number()
-    .describe("Minimum years of experience required"),
-  experienceYearsMax: z
-    .number()
-    .describe("Maximum years of experience expected"),
-});
-
-const KeywordsResultSchema = z.object({
-  keywords: z
-    .array(z.string())
-    .describe(
-      "Normalized technology and domain keywords extracted from the text"
-    ),
-});
-
-const LlmExtractedResumeSchema = z.object({
-  name: z.string().describe("The candidate's full name"),
-  title: z
-    .string()
-    .describe(
-      "Current or most recent job title, e.g. 'Senior Frontend Engineer'"
-    ),
-  skills: z
-    .array(z.string())
-    .describe(
-      "Normalized technology/skill tags extracted from the resume, e.g. ['React', 'TypeScript', 'Node.js']"
-    ),
-  keywords: z
-    .array(z.string())
-    .describe(
-      "Additional domain keywords for matching, e.g. ['frontend', 'SPA', 'microservices']"
-    ),
-  experienceYears: z
-    .number()
-    .describe("Total years of professional experience (integer)"),
-  location: z
-    .string()
-    .describe("Current location or 'Unknown' if not mentioned"),
-  workModes: z
-    .array(z.enum(["office", "hybrid", "remote"]))
-    .describe(
-      "Work modes mentioned or implied. Default to ['office', 'hybrid', 'remote'] if not specified"
-    ),
-  willingToRelocate: z
-    .boolean()
-    .describe(
-      "Whether the candidate indicates willingness to relocate. Default false if not mentioned"
-    ),
-});
-
-const ClarifyingQuestionsResultSchema = z.object({
-  questions: z.array(
-    z.object({
-      field: z.string().describe("Which StructuredJd field this targets"),
-      question: z.string().describe("Human-readable clarifying question"),
-      reason: z
-        .string()
-        .describe("Why this information is needed for matching"),
-      options: z
-        .array(z.string())
-        .optional()
-        .default([])
-        .describe("Suggested answer options"),
-    })
-  ),
-});
+const jdExtractionSchema = toAiSchema(JdExtraction);
+const keywordsSchema = toAiSchema(KeywordsExtraction);
+const resumeExtractionSchema = toAiSchema(ResumeExtraction);
+const clarifyingQuestionsSchema = toAiSchema(ClarifyingQuestionsExtraction);
 
 // ---------------------------------------------------------------------------
 // Prompt builders
@@ -177,7 +89,7 @@ export const LlmAdapterGeminiLayer = Layer.effect(
           .use((google) =>
             generateText({
               model: google(config.languageModel),
-              output: Output.object({ schema: LlmExtractedJdSchema }),
+              output: Output.object({ schema: jdExtractionSchema }),
               prompt: buildStructurePrompt(params.raw),
             })
           )
@@ -205,7 +117,7 @@ export const LlmAdapterGeminiLayer = Layer.effect(
           .use((google) =>
             generateText({
               model: google(config.languageModel),
-              output: Output.object({ schema: KeywordsResultSchema }),
+              output: Output.object({ schema: keywordsSchema }),
               prompt: buildKeywordsPrompt(text),
             })
           )
@@ -224,7 +136,7 @@ export const LlmAdapterGeminiLayer = Layer.effect(
             generateText({
               model: google(config.languageModel),
               output: Output.object({
-                schema: ClarifyingQuestionsResultSchema,
+                schema: clarifyingQuestionsSchema,
               }),
               prompt: buildClarifyingPrompt(raw),
             })
@@ -246,12 +158,12 @@ export const LlmAdapterGeminiLayer = Layer.effect(
           .use((google) =>
             generateText({
               model: google(config.languageModel),
-              output: Output.object({ schema: LlmExtractedResumeSchema }),
+              output: Output.object({ schema: resumeExtractionSchema }),
               prompt: buildResumePrompt(text),
             })
           )
           .pipe(
-            Effect.map(({ output }) => output),
+            Effect.map(({ output }) => ResumeExtraction.make(output)),
             Effect.mapError(
               (cause) =>
                 new LlmError({

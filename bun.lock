@@ -49,7 +49,6 @@
         "@workspace/core": "workspace:*",
         "ai": "^6.0.138",
         "effect": "catalog:",
-        "zod": "^3.25.0",
       },
       "devDependencies": {
         "@effect/vitest": "^0.29.0",
