@@ -5,11 +5,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun x ultracite fix"
+            "command": "bun x ultracite fix >/dev/null 2>&1 || true"
           },
           {
             "type": "command",
-            "command": "bun x ultracite check"
+            "command": "bun x ultracite check 2>&1 || exit 2"
+          },
+          {
+            "type": "command",
+            "command": "bun turbo typecheck 2>&1 || exit 2"
           }
         ]
       }
