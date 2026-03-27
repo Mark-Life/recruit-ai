@@ -49,13 +49,15 @@ End-to-end: JD structuring → resume structuring → embedding → scoring → 
 - [x] Integration test: full pipeline with real Gemini API, verifies ranking order + score breakdown (`packages/ai/tests/ranking.test.ts`)
 - [x] Core scoring unit tests: 7 tests covering keyword overlap, experience fit, work mode constraints, remote handling, recruiter mapping, empty results (`packages/core/tests/ranking-service.test.ts`)
 
-### Test Group 3: Hard Constraint Filtering 🔴 NOT IMPLEMENTED
+### Test Group 3: Hard Constraint Filtering ✅
 
-Story 4 requires: "Talents that violate hard constraints (e.g. wrong geography, no relocation) are excluded." Currently, constraint mismatches only produce a lower score (15% weight penalty) but never exclude candidates.
+Story 4 requires: "Talents that violate hard constraints (e.g. wrong geography, no relocation) are excluded." Implemented `filterByHardConstraints` in scoring.ts, called from RankingService before scoring.
 
-- [ ] Implement hard constraint exclusion in scoring/ranking (location mismatch + no relocation = exclude, work mode mismatch = exclude)
-- [ ] Integration test: candidate in wrong country with no relocation is excluded from results
-- [ ] Integration test: candidate with incompatible work mode is excluded
+- [x] `filterByHardConstraints` pure function in `packages/core/src/domain/scoring.ts`
+- [x] Integration test: excludes talent with incompatible work mode
+- [x] Integration test: excludes talent in wrong location without relocation
+- [x] Integration test: keeps talent in wrong location when relocation is viable
+- [x] Integration test: skips location filtering for remote JDs
 
 ### Test Group 4: JD Refinement Pipeline 🔴 NOT IMPLEMENTED
 
@@ -85,7 +87,7 @@ Service exists (`ProfileIngestionService`) but has zero tests.
 | JD structuring | ✅ Done | ✅ Unit + integration |
 | Resume structuring | ✅ Done | ✅ Integration test |
 | Full ranking pipeline | ✅ Done | ✅ Integration + 7 unit |
-| Hard constraint exclusion | 🔴 Missing | 🔴 No tests |
+| Hard constraint exclusion | ✅ Done | ✅ 4 integration tests |
 | Clarifying questions generation | ✅ Adapter done | 🟡 Mock test only |
 | Answer merging / JD enrichment | 🔴 Missing | 🔴 No tests |
 | Enrichment orchestration | 🔴 Missing | 🔴 No tests |

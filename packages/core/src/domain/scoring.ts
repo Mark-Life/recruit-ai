@@ -18,6 +18,39 @@ const WEIGHTS = {
 } as const;
 
 /**
+ * Hard constraint filter — removes talents that cannot possibly match.
+ * Work mode must be compatible, and for non-remote JDs the talent must
+ * be in the right location or have a viable relocation path.
+ */
+export function filterByHardConstraints(
+  jd: StructuredJd,
+  talents: readonly Talent[]
+): readonly Talent[] {
+  return talents.filter((talent) => {
+    if (!talent.workModes.includes(jd.workMode)) {
+      return false;
+    }
+
+    if (jd.workMode !== "remote") {
+      const talentLoc = talent.location.toLowerCase();
+      const jdLoc = jd.location.toLowerCase();
+      const locationMatch =
+        talentLoc.includes(jdLoc) || jdLoc.includes(talentLoc);
+      if (
+        !(
+          locationMatch ||
+          (talent.willingToRelocate && jd.willingToSponsorRelocation)
+        )
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+}
+
+/**
  * Pure scoring — no Effect services, fully testable.
  * Combines semantic similarity from vector search with keyword overlap,
  * experience alignment, and hard constraint checks.
