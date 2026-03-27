@@ -88,7 +88,16 @@ Story 2: system generates clarifying questions for missing JD info, user answers
 | Enrichment orchestration | ✅ Done | ✅ Integration test |
 | Profile ingestion | ✅ Done | ✅ Integration test |
 
-## Phase 4: API Layer (Stories 4–5)
+## Phase 4: UI
+
+Build the frontend for all UX stories defined in [stories.md](./stories.md).
+
+- [ ] JD input form (paste raw text)
+- [ ] Clarifying questions flow (conversational or form-based)
+- [ ] Ranked results page with score breakdowns per talent
+- [ ] Recruiter contact info alongside each match
+
+## Phase 5: API Layer
 
 Using **Effect HTTP API** (`@effect/platform`) — schema-first, OpenAPI 3.1.0 from Effect schemas, handlers are native Effect programs. Chosen over oRPC to avoid Zod ↔ Effect Schema bridging and keep a single DI system.
 
@@ -100,10 +109,3 @@ Using **Effect HTTP API** (`@effect/platform`) — schema-first, OpenAPI 3.1.0 f
 - [ ] Full Layer composition (`main.ts`) with `HttpApiBuilder.serve()` or `toWebHandler()` for Next.js
 - [ ] OpenAPI spec via `OpenApi.fromApi()` + Scalar/Swagger docs UI layer
 - [ ] Type-safe client via `HttpApiClient` for frontend consumption
-
-## Phase 5: UI
-
-- [ ] JD input form (paste raw text)
-- [ ] Clarifying questions flow (conversational or form-based)
-- [ ] Ranked results page with score breakdowns per talent
-- [ ] Recruiter contact info alongside each match
