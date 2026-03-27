@@ -12,14 +12,13 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@workspace/ui/components/sidebar";
-import { BriefcaseIcon, SettingsIcon, UsersIcon } from "lucide-react";
+import { BriefcaseIcon, UsersIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV_ITEMS = [
   { title: "Jobs", href: "/jobs", icon: BriefcaseIcon },
   { title: "Talents", href: "/talents", icon: UsersIcon },
-  { title: "Settings", href: "/settings", icon: SettingsIcon },
 ] as const;
 
 export function AppSidebar() {
