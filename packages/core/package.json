@@ -13,6 +13,7 @@
   "exports": {
     "./domain/*": "./src/domain/*.ts",
     "./ports/*": "./src/ports/*.ts",
+    "./prompts/*": "./src/prompts/*.ts",
     "./services/*": "./src/services/*.ts"
   },
   "dependencies": {

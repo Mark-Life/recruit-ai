@@ -7,6 +7,12 @@ import {
 import { StructuredJd } from "@workspace/core/domain/models/job-description";
 import { ResumeExtraction } from "@workspace/core/domain/models/resume-extraction";
 import { LlmPort } from "@workspace/core/ports/llm-port";
+import {
+  clarifyingQuestionsPrompt,
+  structureJdPrompt,
+} from "@workspace/core/prompts/jd-prompts";
+import { extractKeywordsPrompt } from "@workspace/core/prompts/keyword-prompts";
+import { structureResumePrompt } from "@workspace/core/prompts/resume-prompts";
 import { generateText, Output } from "ai";
 import { Effect, Layer } from "effect";
 import { GoogleAiClient } from "../clients/google-ai-client";
@@ -21,57 +27,6 @@ const jdExtractionSchema = toAiSchema(JdExtraction);
 const keywordsSchema = toAiSchema(KeywordsExtraction);
 const resumeExtractionSchema = toAiSchema(ResumeExtraction);
 const clarifyingQuestionsSchema = toAiSchema(ClarifyingQuestionsExtraction);
-
-// ---------------------------------------------------------------------------
-// Prompt builders
-// ---------------------------------------------------------------------------
-
-function buildStructurePrompt(raw: string): string {
-  return [
-    "You are an expert recruiter assistant. Analyze the following job description and extract structured information.",
-    "Normalize skill and technology names (e.g. 'React.js' and 'ReactJS' should both become 'React').",
-    "If a field is not explicitly mentioned, make a reasonable inference based on context.",
-    "For experience years, estimate a reasonable range if not explicitly stated.",
-    "",
-    "Job Description:",
-    raw,
-  ].join("\n");
-}
-
-function buildKeywordsPrompt(text: string): string {
-  return [
-    "Extract normalized technology and domain keywords from the following text.",
-    "Normalize variations (e.g. 'React.js', 'ReactJS' → 'React').",
-    "Include both specific technologies and broader domain terms.",
-    "",
-    "Text:",
-    text,
-  ].join("\n");
-}
-
-function buildResumePrompt(text: string): string {
-  return [
-    "You are an expert recruiter assistant. Analyze the following resume/CV and extract structured profile information.",
-    "Normalize skill and technology names (e.g. 'React.js' and 'ReactJS' should both become 'React').",
-    "For experience years, calculate total professional experience from the career history.",
-    "For work modes, extract any mentioned preferences. If not mentioned, default to all three modes.",
-    "For location, extract the candidate's current city/country. Use 'Unknown' if not mentioned.",
-    "",
-    "Resume:",
-    text,
-  ].join("\n");
-}
-
-function buildClarifyingPrompt(raw: string): string {
-  return [
-    "You are an expert recruiter assistant. Analyze the following job description and identify missing information that would improve talent matching.",
-    "Only generate questions for information that is NOT already present or clearly implied in the JD.",
-    "Focus on: work mode, location/geography, relocation, employment type, seniority, compensation, and timeline.",
-    "",
-    "Job Description:",
-    raw,
-  ].join("\n");
-}
 
 // ---------------------------------------------------------------------------
 // Layer
@@ -90,7 +45,7 @@ export const LlmAdapterGeminiLayer = Layer.effect(
             generateText({
               model: google(config.languageModel),
               output: Output.object({ schema: jdExtractionSchema }),
-              prompt: buildStructurePrompt(params.raw),
+              prompt: structureJdPrompt({ raw: params.raw }),
             })
           )
           .pipe(
@@ -118,7 +73,7 @@ export const LlmAdapterGeminiLayer = Layer.effect(
             generateText({
               model: google(config.languageModel),
               output: Output.object({ schema: keywordsSchema }),
-              prompt: buildKeywordsPrompt(text),
+              prompt: extractKeywordsPrompt({ text }),
             })
           )
           .pipe(
@@ -138,7 +93,7 @@ export const LlmAdapterGeminiLayer = Layer.effect(
               output: Output.object({
                 schema: clarifyingQuestionsSchema,
               }),
-              prompt: buildClarifyingPrompt(raw),
+              prompt: clarifyingQuestionsPrompt({ raw }),
             })
           )
           .pipe(
@@ -159,7 +114,7 @@ export const LlmAdapterGeminiLayer = Layer.effect(
             generateText({
               model: google(config.languageModel),
               output: Output.object({ schema: resumeExtractionSchema }),
-              prompt: buildResumePrompt(text),
+              prompt: structureResumePrompt({ text }),
             })
           )
           .pipe(
