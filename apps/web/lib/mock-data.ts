@@ -4,6 +4,7 @@
  */
 
 export type JobStatus = "draft" | "refining" | "matching" | "ready";
+export type TalentStatus = "uploaded" | "extracting" | "reviewing" | "matched";
 
 export interface MockJobDescription {
   createdAt: string;
@@ -27,13 +28,18 @@ export interface MockJobDescription {
 }
 
 export interface MockTalent {
+  createdAt: string;
   experienceYears: number;
   id: string;
   keywords: readonly string[];
   location: string;
+  matchCount: number;
   name: string;
+  rawResumeText: string;
   recruiterId: string;
   skills: readonly string[];
+  status: TalentStatus;
+  summary: string;
   title: string;
   willingToRelocate: boolean;
   workModes: readonly string[];
@@ -96,6 +102,13 @@ export const MOCK_TALENTS: readonly MockTalent[] = [
     workModes: ["remote", "hybrid"],
     willingToRelocate: true,
     recruiterId: "rec-1",
+    status: "matched",
+    matchCount: 2,
+    createdAt: "2026-03-24T08:00:00Z",
+    rawResumeText:
+      "Senior Frontend Developer with 7 years of experience building high-performance web applications. Expertise in React, TypeScript, and Next.js. Led the migration of a legacy jQuery application to a modern React SPA serving 500k monthly users. Built a shared design system used across 4 product teams. Experienced with GraphQL APIs, Tailwind CSS, and performance optimization. Previously at Zalando and N26.",
+    summary:
+      "Seasoned frontend specialist with strong React/TypeScript depth, design systems experience, and a track record at scale-up companies in Europe.",
   },
   {
     id: "tal-2",
@@ -108,6 +121,13 @@ export const MOCK_TALENTS: readonly MockTalent[] = [
     workModes: ["hybrid", "office"],
     willingToRelocate: false,
     recruiterId: "rec-2",
+    status: "reviewing",
+    matchCount: 0,
+    createdAt: "2026-03-26T11:00:00Z",
+    rawResumeText:
+      "Frontend Engineer with 4 years building responsive, accessible web interfaces. Proficient in React and Vue.js with a strong eye for animation and micro-interactions. Experience with Webpack bundling, CSS-in-JS, and responsive design. Built the customer-facing dashboard for a fintech startup handling £2M in monthly transactions. Passionate about UI polish and motion design.",
+    summary:
+      "Mid-level frontend engineer with dual React/Vue experience, strong CSS and animation skills, and fintech domain exposure.",
   },
   {
     id: "tal-3",
@@ -120,6 +140,12 @@ export const MOCK_TALENTS: readonly MockTalent[] = [
     workModes: ["remote"],
     willingToRelocate: false,
     recruiterId: "rec-1",
+    status: "extracting",
+    matchCount: 0,
+    createdAt: "2026-03-27T06:30:00Z",
+    rawResumeText:
+      "Fullstack Developer with 6 years spanning React frontends and Node.js backends. Strong PostgreSQL experience including schema design, query optimization, and migrations. Comfortable with Docker, CI/CD pipelines, and AWS infrastructure. Built microservices architecture for a SaaS product with 10k+ enterprise users. Open-source contributor to several Node.js libraries.",
+    summary: "",
   },
   {
     id: "tal-4",
@@ -132,6 +158,13 @@ export const MOCK_TALENTS: readonly MockTalent[] = [
     workModes: ["remote", "hybrid"],
     willingToRelocate: true,
     recruiterId: "rec-3",
+    status: "matched",
+    matchCount: 1,
+    createdAt: "2026-03-23T14:00:00Z",
+    rawResumeText:
+      "Staff Frontend Engineer with 10 years of experience leading frontend architecture decisions across multiple product lines. Deep expertise in React, TypeScript, Next.js, and Remix. Champion of testing culture — introduced comprehensive E2E and component testing strategies that reduced production incidents by 60%. Mentored 12+ engineers across two organizations. Speaker at ReactConf India.",
+    summary:
+      "Staff-level frontend leader with deep framework expertise, testing advocacy, and a strong mentoring track record.",
   },
   {
     id: "tal-5",
@@ -144,6 +177,12 @@ export const MOCK_TALENTS: readonly MockTalent[] = [
     workModes: ["office", "hybrid"],
     willingToRelocate: true,
     recruiterId: "rec-2",
+    status: "uploaded",
+    matchCount: 0,
+    createdAt: "2026-03-27T09:00:00Z",
+    rawResumeText:
+      "React Developer with 3 years of experience focused on component-driven development. Built and maintained a Storybook-based component library used by 3 product teams. Strong testing background with Jest and React Testing Library. Experience with Redux state management and CI integration. Computer Science degree from TU Munich.",
+    summary: "",
   },
 ];
 
@@ -329,10 +368,78 @@ export const MOCK_CLARIFYING_QUESTIONS: readonly MockClarifyingQuestion[] = [
   },
 ];
 
+// --- Reverse Matches (talent → jobs) ---
+
+export interface MockTalentJobMatch {
+  breakdown: MockScoreBreakdown;
+  id: string;
+  job: MockJobDescription;
+  jobDescriptionId: string;
+  talentId: string;
+  totalScore: number;
+}
+
+function findJob(id: string): MockJobDescription {
+  const j = MOCK_JOBS.find((job) => job.id === id);
+  if (!j) {
+    throw new Error(`Job ${id} not found`);
+  }
+  return j;
+}
+
+export const MOCK_TALENT_MATCHES_TAL1: readonly MockTalentJobMatch[] = [
+  {
+    id: "tmatch-1",
+    talentId: "tal-1",
+    jobDescriptionId: "jd-1",
+    totalScore: 0.92,
+    breakdown: {
+      semanticSimilarity: 0.94,
+      keywordOverlap: 0.88,
+      experienceFit: 0.95,
+      constraintFit: 1.0,
+    },
+    job: findJob("jd-1"),
+  },
+  {
+    id: "tmatch-2",
+    talentId: "tal-1",
+    jobDescriptionId: "jd-2",
+    totalScore: 0.68,
+    breakdown: {
+      semanticSimilarity: 0.72,
+      keywordOverlap: 0.6,
+      experienceFit: 0.7,
+      constraintFit: 0.65,
+    },
+    job: findJob("jd-2"),
+  },
+];
+
+export const MOCK_TALENT_MATCHES_TAL4: readonly MockTalentJobMatch[] = [
+  {
+    id: "tmatch-3",
+    talentId: "tal-4",
+    jobDescriptionId: "jd-1",
+    totalScore: 0.87,
+    breakdown: {
+      semanticSimilarity: 0.91,
+      keywordOverlap: 0.82,
+      experienceFit: 0.85,
+      constraintFit: 1.0,
+    },
+    job: findJob("jd-1"),
+  },
+];
+
 // --- Helpers ---
 
 export function getJobById(id: string): MockJobDescription | undefined {
   return MOCK_JOBS.find((j) => j.id === id);
+}
+
+export function getTalentById(id: string): MockTalent | undefined {
+  return MOCK_TALENTS.find((t) => t.id === id);
 }
 
 export function getMatchesForJob(jobId: string): readonly MockMatch[] {
@@ -347,6 +454,18 @@ export function getQuestionsForJob(
 ): readonly MockClarifyingQuestion[] {
   if (jobId === "jd-2") {
     return MOCK_CLARIFYING_QUESTIONS;
+  }
+  return [];
+}
+
+export function getJobMatchesForTalent(
+  talentId: string
+): readonly MockTalentJobMatch[] {
+  if (talentId === "tal-1") {
+    return MOCK_TALENT_MATCHES_TAL1;
+  }
+  if (talentId === "tal-4") {
+    return MOCK_TALENT_MATCHES_TAL4;
   }
   return [];
 }

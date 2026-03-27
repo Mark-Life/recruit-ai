@@ -1,51 +1,27 @@
-import { Badge } from "@workspace/ui/components/badge";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import { MapPinIcon, MonitorIcon } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { MOCK_TALENTS } from "@/lib/mock-data";
+import { NewTalentDialog } from "./new-talent-dialog";
+import { TalentCard } from "./talent-card";
 
 export default function TalentsPage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageHeader title="Talent Pool" />
+      <PageHeader action={<NewTalentDialog />} title="Talent Pool" />
       <ScrollArea className="min-h-0 flex-1">
         <div className="p-4">
-          <div className="flex flex-col gap-3">
-            {MOCK_TALENTS.map((talent) => (
-              <Card key={talent.id} size="sm">
-                <CardHeader>
-                  <CardTitle>{talent.name}</CardTitle>
-                  <CardDescription>
-                    <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span>{talent.title}</span>
-                      <span className="inline-flex items-center gap-1">
-                        <MapPinIcon className="size-3.5" />
-                        {talent.location}
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <MonitorIcon className="size-3.5" />
-                        {talent.workModes.join(" / ")}
-                      </span>
-                      <span>{talent.experienceYears} yrs</span>
-                    </span>
-                    <span className="mt-1.5 flex flex-wrap gap-1">
-                      {talent.skills.map((s) => (
-                        <Badge key={s} variant="secondary">
-                          {s}
-                        </Badge>
-                      ))}
-                    </span>
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
+          {MOCK_TALENTS.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
+              <p className="text-sm">No talents yet.</p>
+              <NewTalentDialog />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {MOCK_TALENTS.map((talent) => (
+                <TalentCard key={talent.id} talent={talent} />
+              ))}
+            </div>
+          )}
         </div>
       </ScrollArea>
     </div>

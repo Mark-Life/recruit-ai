@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@effect/platform": "catalog:",
+    "@tanstack/react-form": "^1.28.5",
     "@tanstack/react-query": "^5.95.2",
     "@workspace/api": "workspace:*",
     "@workspace/env": "workspace:*",
