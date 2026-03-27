@@ -70,11 +70,9 @@ Story 2: system generates clarifying questions for missing JD info, user answers
 - [x] Integration test: `generateClarifyingQuestions` with real Gemini API (`packages/ai/tests/jd-refinement.test.ts`)
 - [x] Integration test: full refinement pipeline — incomplete JD → questions → answers → enriched `StructuredJd` with correct values
 
-### Test Group 5: Profile Ingestion 🟡 NOT TESTED
+### Test Group 5: Profile Ingestion ✅
 
-Service exists (`ProfileIngestionService`) but has zero tests.
-
-- [ ] Integration test: enrich a talent profile → verify extracted keywords are reasonable + embedding is generated
+- [x] Integration test: enrich a talent profile → verify extracted keywords are reasonable + embedding is generated (`packages/ai/tests/profile-ingestion.test.ts`)
 
 ### Summary
 
@@ -88,7 +86,7 @@ Service exists (`ProfileIngestionService`) but has zero tests.
 | Clarifying questions generation | ✅ Done | ✅ Integration test |
 | Answer merging / JD enrichment | ✅ Done | ✅ Integration test |
 | Enrichment orchestration | ✅ Done | ✅ Integration test |
-| Profile ingestion | ✅ Service done | 🔴 No tests |
+| Profile ingestion | ✅ Done | ✅ Integration test |
 
 ## Phase 4: API Layer (Stories 4–5)
 
