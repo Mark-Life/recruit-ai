@@ -11,7 +11,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <TooltipProvider>
       <SidebarProvider>
         <AppSidebar />
-        <SidebarInset>{children}</SidebarInset>
+        <SidebarInset className="max-h-svh overflow-hidden">
+          {children}
+        </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>
   );

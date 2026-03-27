@@ -6,22 +6,53 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
+import { cn } from "@workspace/ui/lib/utils";
 import {
   BriefcaseIcon,
+  CheckCircle2Icon,
   MapPinIcon,
+  MessageSquareIcon,
   MonitorIcon,
+  SearchIcon,
   UsersIcon,
 } from "lucide-react";
-import type { Route } from "next";
 import Link from "next/link";
-import type { MockJobDescription } from "@/lib/mock-data";
+import type { JobStatus, MockJobDescription } from "@/lib/mock-data";
 
-const STATUS_CONFIG = {
-  draft: { label: "Draft", variant: "outline" },
-  refining: { label: "Refining", variant: "secondary" },
-  matching: { label: "Matching", variant: "secondary" },
-  ready: { label: "Ready", variant: "default" },
-} as const;
+const STATUS_CONFIG: Record<
+  JobStatus,
+  {
+    label: string;
+    icon: typeof SearchIcon;
+    variant: "default" | "secondary" | "outline";
+    className?: string;
+  }
+> = {
+  draft: {
+    label: "Draft",
+    variant: "outline",
+    icon: BriefcaseIcon,
+  },
+  refining: {
+    label: "Needs Input",
+    variant: "secondary",
+    icon: MessageSquareIcon,
+    className:
+      "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+  },
+  matching: {
+    label: "Analyzing",
+    variant: "secondary",
+    icon: SearchIcon,
+    className:
+      "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-400",
+  },
+  ready: {
+    label: "Ready",
+    variant: "default",
+    icon: CheckCircle2Icon,
+  },
+};
 
 const MS_PER_MINUTE = 60_000;
 const MINUTES_PER_HOUR = 60;
@@ -41,21 +72,17 @@ function formatRelativeDate(iso: string): string {
   return `${days}d ago`;
 }
 
-function hrefForJob(job: MockJobDescription): Route {
-  if (job.status === "refining") {
-    return `/jobs/${job.id}/refine` as Route;
-  }
-  return `/jobs/${job.id}` as Route;
-}
-
 export function JobCard({ job }: { job: MockJobDescription }) {
-  const statusConfig = STATUS_CONFIG[job.status];
+  const config = STATUS_CONFIG[job.status];
+  const StatusIcon = config.icon;
 
   return (
-    <Link href={hrefForJob(job)}>
+    <Link href={`/jobs/${job.id}`}>
       <Card className="transition-colors hover:bg-muted/50" size="sm">
         <CardHeader>
-          <CardTitle>{job.roleTitle}</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            {job.roleTitle}
+          </CardTitle>
           <CardDescription>
             <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="inline-flex items-center gap-1">
@@ -83,7 +110,13 @@ export function JobCard({ job }: { job: MockJobDescription }) {
                   {job.matchCount} matches
                 </span>
               )}
-              <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
+              <Badge
+                className={cn("gap-1", config.className)}
+                variant={config.variant}
+              >
+                <StatusIcon className="size-3" />
+                {config.label}
+              </Badge>
             </span>
           </CardAction>
         </CardHeader>
