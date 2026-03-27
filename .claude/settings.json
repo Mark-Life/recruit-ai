@@ -9,11 +9,11 @@
           },
           {
             "type": "command",
-            "command": "bun x ultracite check 2>&1 || exit 2"
+            "command": "output=$(bun x ultracite check 2>&1); if [ $? -ne 0 ]; then echo \"$output\"; exit 2; fi"
           },
           {
             "type": "command",
-            "command": "bun turbo typecheck 2>&1 || exit 2"
+            "command": "output=$(bun turbo typecheck 2>&1); if [ $? -ne 0 ]; then echo \"$output\"; exit 2; fi"
           }
         ]
       }
