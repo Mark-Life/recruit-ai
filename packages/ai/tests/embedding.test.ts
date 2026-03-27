@@ -63,7 +63,7 @@ function cosineSimilarity(a: readonly number[], b: readonly number[]): number {
 const MINIMUM_SPREAD = 0.05;
 
 describe.skipIf(!process.env.GOOGLE_GENERATIVE_AI_API_KEY)(
-  "Embedding Eval — similarity ranking",
+  "Embedding — similarity ranking",
   () => {
     it.effect(
       "ranks senior frontend above senior backend above veterinarian",

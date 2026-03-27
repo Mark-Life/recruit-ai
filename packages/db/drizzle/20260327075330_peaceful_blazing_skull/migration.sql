@@ -1,0 +1,1 @@
+ALTER TABLE "talents" ALTER COLUMN "embedding" SET DATA TYPE vector(3072) USING "embedding"::vector(3072);

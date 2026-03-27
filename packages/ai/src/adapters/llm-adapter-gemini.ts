@@ -57,6 +57,41 @@ const KeywordsResultSchema = z.object({
     ),
 });
 
+const LlmExtractedResumeSchema = z.object({
+  name: z.string().describe("The candidate's full name"),
+  title: z
+    .string()
+    .describe(
+      "Current or most recent job title, e.g. 'Senior Frontend Engineer'"
+    ),
+  skills: z
+    .array(z.string())
+    .describe(
+      "Normalized technology/skill tags extracted from the resume, e.g. ['React', 'TypeScript', 'Node.js']"
+    ),
+  keywords: z
+    .array(z.string())
+    .describe(
+      "Additional domain keywords for matching, e.g. ['frontend', 'SPA', 'microservices']"
+    ),
+  experienceYears: z
+    .number()
+    .describe("Total years of professional experience (integer)"),
+  location: z
+    .string()
+    .describe("Current location or 'Unknown' if not mentioned"),
+  workModes: z
+    .array(z.enum(["office", "hybrid", "remote"]))
+    .describe(
+      "Work modes mentioned or implied. Default to ['office', 'hybrid', 'remote'] if not specified"
+    ),
+  willingToRelocate: z
+    .boolean()
+    .describe(
+      "Whether the candidate indicates willingness to relocate. Default false if not mentioned"
+    ),
+});
+
 const ClarifyingQuestionsResultSchema = z.object({
   questions: z.array(
     z.object({
@@ -97,6 +132,19 @@ function buildKeywordsPrompt(text: string): string {
     "Include both specific technologies and broader domain terms.",
     "",
     "Text:",
+    text,
+  ].join("\n");
+}
+
+function buildResumePrompt(text: string): string {
+  return [
+    "You are an expert recruiter assistant. Analyze the following resume/CV and extract structured profile information.",
+    "Normalize skill and technology names (e.g. 'React.js' and 'ReactJS' should both become 'React').",
+    "For experience years, calculate total professional experience from the career history.",
+    "For work modes, extract any mentioned preferences. If not mentioned, default to all three modes.",
+    "For location, extract the candidate's current city/country. Use 'Unknown' if not mentioned.",
+    "",
+    "Resume:",
     text,
   ].join("\n");
 }
@@ -190,6 +238,27 @@ export const LlmAdapterGeminiLayer = Layer.effect(
                 })
             ),
             Effect.withSpan("llm.generateClarifyingQuestions")
+          ),
+
+      structureResume: (text) =>
+        ai
+          .use((google) =>
+            generateText({
+              model: google(config.languageModel),
+              output: Output.object({ schema: LlmExtractedResumeSchema }),
+              prompt: buildResumePrompt(text),
+            })
+          )
+          .pipe(
+            Effect.map(({ output }) => output),
+            Effect.mapError(
+              (cause) =>
+                new LlmError({
+                  message: "Failed to structure resume",
+                  cause,
+                })
+            ),
+            Effect.withSpan("llm.structureResume")
           ),
     });
   })

@@ -1,3 +1,4 @@
+import { env } from "@workspace/env/server";
 import { defineConfig } from "drizzle-kit";
 
 export default defineConfig({
@@ -5,7 +6,6 @@ export default defineConfig({
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
-    // biome-ignore lint/style/noNonNullAssertion: required by drizzle-kit config
-    url: process.env.DATABASE_URL!,
+    url: env.DATABASE_URL,
   },
 });

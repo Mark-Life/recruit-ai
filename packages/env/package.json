@@ -8,9 +8,12 @@
     "typecheck": "tsc --noEmit"
   },
   "exports": {
-    "./web": "./src/web.ts"
+    "./server": "./src/server.ts",
+    "./web": "./src/web.ts",
+    "./load-root-env": "./src/load-root-env.ts"
   },
   "dependencies": {
+    "@t3-oss/env-core": "^0.12.0",
     "@t3-oss/env-nextjs": "^0.12.0",
     "dotenv": "^16.5.0",
     "zod": "^3.25.76"
