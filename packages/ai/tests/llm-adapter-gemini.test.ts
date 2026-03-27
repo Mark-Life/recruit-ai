@@ -3,6 +3,7 @@ import {
   JobDescriptionId,
   OrganizationId,
 } from "@workspace/core/domain/models/ids";
+import { ResumeExtraction } from "@workspace/core/domain/models/resume-extraction";
 import { LlmPort } from "@workspace/core/ports/llm-port";
 import { Effect, Layer } from "effect";
 
@@ -55,16 +56,18 @@ const TestLayer = Layer.succeed(LlmPort, {
   generateClarifyingQuestions: (_raw: string) =>
     Effect.succeed(MOCK_QUESTIONS as any),
   structureResume: (_text: string) =>
-    Effect.succeed({
-      name: "Test User",
-      title: "Engineer",
-      skills: ["TypeScript"],
-      keywords: ["engineering"],
-      experienceYears: 5,
-      location: "Unknown",
-      workModes: ["remote" as const],
-      willingToRelocate: false,
-    }),
+    Effect.succeed(
+      ResumeExtraction.make({
+        name: "Test User",
+        title: "Engineer",
+        skills: ["TypeScript"],
+        keywords: ["engineering"],
+        experienceYears: 5,
+        location: "Unknown",
+        workModes: ["remote"],
+        willingToRelocate: false,
+      })
+    ),
 });
 
 // ---------------------------------------------------------------------------
