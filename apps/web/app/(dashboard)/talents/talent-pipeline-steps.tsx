@@ -2,7 +2,7 @@
 
 import { cn } from "@workspace/ui/lib/utils";
 import { CheckIcon } from "lucide-react";
-import type { TalentStatus } from "@/lib/mock-data";
+import type { TalentStatus } from "@/lib/api";
 
 const STEPS = [
   { key: "uploaded", label: "Upload" },

@@ -14,11 +14,10 @@ import {
   MonitorIcon,
   SearchIcon,
   UploadIcon,
-  UsersIcon,
 } from "lucide-react";
-import type { Route } from "next";
 import Link from "next/link";
-import type { MockTalent, TalentStatus } from "@/lib/mock-data";
+import type { Talent, TalentStatus } from "@/lib/api";
+import { formatRelativeDate } from "@/lib/utils";
 
 const STATUS_CONFIG: Record<
   TalentStatus,
@@ -55,30 +54,12 @@ const STATUS_CONFIG: Record<
   },
 };
 
-const MS_PER_MINUTE = 60_000;
-const MINUTES_PER_HOUR = 60;
-const HOURS_PER_DAY = 24;
-
-function formatRelativeDate(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const minutes = Math.floor(diff / MS_PER_MINUTE);
-  if (minutes < MINUTES_PER_HOUR) {
-    return `${minutes}m ago`;
-  }
-  const hours = Math.floor(minutes / MINUTES_PER_HOUR);
-  if (hours < HOURS_PER_DAY) {
-    return `${hours}h ago`;
-  }
-  const days = Math.floor(hours / HOURS_PER_DAY);
-  return `${days}d ago`;
-}
-
-export function TalentCard({ talent }: { talent: MockTalent }) {
+export function TalentCard({ talent }: { talent: Talent }) {
   const config = STATUS_CONFIG[talent.status];
   const StatusIcon = config.icon;
 
   return (
-    <Link href={`/talents/${talent.id}` as Route}>
+    <Link href={`/talents/${talent.id}`}>
       <Card className="transition-colors hover:bg-muted/50" size="sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -101,21 +82,13 @@ export function TalentCard({ talent }: { talent: MockTalent }) {
             </span>
           </CardDescription>
           <CardAction>
-            <span className="flex items-center gap-2">
-              {talent.status === "matched" && talent.matchCount > 0 && (
-                <span className="inline-flex items-center gap-1 text-muted-foreground text-xs">
-                  <UsersIcon className="size-3.5" />
-                  {talent.matchCount} jobs
-                </span>
-              )}
-              <Badge
-                className={cn("gap-1", config.className)}
-                variant={config.variant}
-              >
-                <StatusIcon className="size-3" />
-                {config.label}
-              </Badge>
-            </span>
+            <Badge
+              className={cn("gap-1", config.className)}
+              variant={config.variant}
+            >
+              <StatusIcon className="size-3" />
+              {config.label}
+            </Badge>
           </CardAction>
         </CardHeader>
       </Card>

@@ -1,9 +1,9 @@
 import { Badge } from "@workspace/ui/components/badge";
 import { Separator } from "@workspace/ui/components/separator";
 import { MapPinIcon, MonitorIcon, UserIcon } from "lucide-react";
-import type { MockTalent } from "@/lib/mock-data";
+import type { Talent } from "@/lib/api";
 
-export function ResumeTextPanel({ talent }: { talent: MockTalent }) {
+export function ResumeTextPanel({ talent }: { talent: Talent }) {
   return (
     <div className="flex flex-col gap-5">
       {/* Header */}
@@ -39,23 +39,19 @@ export function ResumeTextPanel({ talent }: { talent: MockTalent }) {
 
       <Separator />
 
-      {/* Raw resume text */}
-      <div className="flex flex-col gap-2">
-        <span className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
-          Resume
-        </span>
-        <p className="whitespace-pre-wrap text-sm leading-relaxed">
-          {talent.rawResumeText}
-        </p>
-      </div>
-
-      {/* Summary */}
-      {talent.summary && (
-        <div className="flex flex-col gap-2 rounded-lg border bg-muted/30 p-3">
+      {/* Keywords */}
+      {talent.keywords.length > 0 && (
+        <div className="flex flex-col gap-2">
           <span className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
-            AI Summary
+            Keywords
           </span>
-          <p className="text-sm leading-relaxed">{talent.summary}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {talent.keywords.map((kw) => (
+              <Badge key={kw} variant="outline">
+                {kw}
+              </Badge>
+            ))}
+          </div>
         </div>
       )}
     </div>

@@ -1,5 +1,17 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(bun test*)",
+            "command": ".claude/hooks/rewrite-bun-test.sh"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

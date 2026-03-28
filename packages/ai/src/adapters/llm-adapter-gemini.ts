@@ -16,8 +16,8 @@ import {
   structureResumePdfPrompt,
   structureResumePrompt,
 } from "@workspace/core/prompts/resume-prompts";
-import { generateText, Output } from "ai";
-import { Effect, Layer } from "effect";
+import { generateText, Output, streamText } from "ai";
+import { Effect, Layer, Stream } from "effect";
 import { GoogleAiClient } from "../clients/google-ai-client";
 import { AiConfig } from "../config/ai-config";
 import { toAiSchema } from "./effect-schema-bridge";
@@ -58,6 +58,8 @@ export const LlmAdapterGeminiLayer = Layer.effect(
                 id: params.id,
                 organizationId: params.organizationId,
                 rawText: params.raw,
+                status: "draft",
+                createdAt: new Date().toISOString(),
               })
             ),
             Effect.mapError(
@@ -164,6 +166,129 @@ export const LlmAdapterGeminiLayer = Layer.effect(
             ),
             Effect.withSpan("llm.structureResumePdf")
           ),
+
+      // -----------------------------------------------------------------------
+      // Streaming variants
+      // -----------------------------------------------------------------------
+
+      streamStructureJd: (params) =>
+        Stream.unwrap(
+          Effect.try({
+            try: () =>
+              streamText({
+                model: ai.google(config.languageModel),
+                output: Output.object({ schema: jdExtractionSchema }),
+                prompt: structureJdPrompt({ raw: params.raw }),
+              }),
+            catch: (cause) =>
+              new LlmError({ message: "Failed to start JD stream", cause }),
+          }).pipe(
+            Effect.map((result) =>
+              Stream.fromAsyncIterable(
+                result.partialOutputStream,
+                (e) => new LlmError({ message: "JD stream failed", cause: e })
+              )
+            )
+          )
+        ),
+
+      streamStructureResume: (text) =>
+        Stream.unwrap(
+          Effect.try({
+            try: () =>
+              streamText({
+                model: ai.google(config.languageModel),
+                output: Output.object({ schema: resumeExtractionSchema }),
+                prompt: structureResumePrompt({ text }),
+              }),
+            catch: (cause) =>
+              new LlmError({
+                message: "Failed to start resume stream",
+                cause,
+              }),
+          }).pipe(
+            Effect.map((result) =>
+              Stream.fromAsyncIterable(
+                result.partialOutputStream,
+                (e) =>
+                  new LlmError({
+                    message: "Resume stream failed",
+                    cause: e,
+                  })
+              )
+            )
+          )
+        ),
+
+      streamStructureResumePdf: (pdf) =>
+        Stream.unwrap(
+          Effect.try({
+            try: () =>
+              streamText({
+                model: ai.google(config.languageModel),
+                output: Output.object({ schema: resumeExtractionSchema }),
+                messages: [
+                  {
+                    role: "user",
+                    content: [
+                      { type: "text", text: structureResumePdfPrompt },
+                      {
+                        type: "file",
+                        mediaType: "application/pdf",
+                        data: pdf,
+                      },
+                    ],
+                  },
+                ],
+              }),
+            catch: (cause) =>
+              new LlmError({
+                message: "Failed to start resume PDF stream",
+                cause,
+              }),
+          }).pipe(
+            Effect.map((result) =>
+              Stream.fromAsyncIterable(
+                result.partialOutputStream,
+                (e) =>
+                  new LlmError({
+                    message: "Resume PDF stream failed",
+                    cause: e,
+                  })
+              )
+            )
+          )
+        ),
+
+      streamClarifyingQuestions: (raw) =>
+        Stream.unwrap(
+          Effect.try({
+            try: () =>
+              streamText({
+                model: ai.google(config.languageModel),
+                output: Output.object({
+                  schema: clarifyingQuestionsSchema,
+                }),
+                prompt: clarifyingQuestionsPrompt({ raw }),
+              }),
+            catch: (cause) =>
+              new LlmError({
+                message: "Failed to start clarifying questions stream",
+                cause,
+              }),
+          }).pipe(
+            Effect.map((result) =>
+              Stream.fromAsyncIterable(
+                result.partialOutputStream,
+                (e) =>
+                  new LlmError({
+                    message: "Clarifying questions stream failed",
+                    cause: e,
+                  })
+              )
+            )
+          )
+        ),
     });
   })
 );

@@ -14,10 +14,10 @@ import {
   MessageSquareIcon,
   MonitorIcon,
   SearchIcon,
-  UsersIcon,
 } from "lucide-react";
 import Link from "next/link";
-import type { JobStatus, MockJobDescription } from "@/lib/mock-data";
+import type { Job, JobStatus } from "@/lib/api";
+import { formatRelativeDate } from "@/lib/utils";
 
 const STATUS_CONFIG: Record<
   JobStatus,
@@ -54,25 +54,7 @@ const STATUS_CONFIG: Record<
   },
 };
 
-const MS_PER_MINUTE = 60_000;
-const MINUTES_PER_HOUR = 60;
-const HOURS_PER_DAY = 24;
-
-function formatRelativeDate(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const minutes = Math.floor(diff / MS_PER_MINUTE);
-  if (minutes < MINUTES_PER_HOUR) {
-    return `${minutes}m ago`;
-  }
-  const hours = Math.floor(minutes / MINUTES_PER_HOUR);
-  if (hours < HOURS_PER_DAY) {
-    return `${hours}h ago`;
-  }
-  const days = Math.floor(hours / HOURS_PER_DAY);
-  return `${days}d ago`;
-}
-
-export function JobCard({ job }: { job: MockJobDescription }) {
+export function JobCard({ job }: { job: Job }) {
   const config = STATUS_CONFIG[job.status];
   const StatusIcon = config.icon;
 
@@ -85,10 +67,6 @@ export function JobCard({ job }: { job: MockJobDescription }) {
           </CardTitle>
           <CardDescription>
             <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <span className="inline-flex items-center gap-1">
-                <BriefcaseIcon className="size-3.5 text-muted-foreground" />
-                {job.organizationName}
-              </span>
               <span className="inline-flex items-center gap-1">
                 <MapPinIcon className="size-3.5 text-muted-foreground" />
                 {job.location}
@@ -103,21 +81,13 @@ export function JobCard({ job }: { job: MockJobDescription }) {
             </span>
           </CardDescription>
           <CardAction>
-            <span className="flex items-center gap-2">
-              {job.status === "ready" && job.matchCount > 0 && (
-                <span className="inline-flex items-center gap-1 text-muted-foreground text-xs">
-                  <UsersIcon className="size-3.5" />
-                  {job.matchCount} matches
-                </span>
-              )}
-              <Badge
-                className={cn("gap-1", config.className)}
-                variant={config.variant}
-              >
-                <StatusIcon className="size-3" />
-                {config.label}
-              </Badge>
-            </span>
+            <Badge
+              className={cn("gap-1", config.className)}
+              variant={config.variant}
+            >
+              <StatusIcon className="size-3" />
+              {config.label}
+            </Badge>
           </CardAction>
         </CardHeader>
       </Card>

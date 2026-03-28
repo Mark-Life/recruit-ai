@@ -64,6 +64,9 @@
       "version": "0.0.1",
       "dependencies": {
         "@effect/platform": "catalog:",
+        "@workspace/ai": "workspace:*",
+        "@workspace/core": "workspace:*",
+        "@workspace/db": "workspace:*",
         "effect": "catalog:",
       },
       "devDependencies": {

@@ -19,7 +19,9 @@ type TalentRow = typeof talents.$inferSelect;
 type TalentInput = {
   [K in keyof Schema.Schema.Encoded<typeof Talent>]: K extends "workModes"
     ? readonly string[]
-    : Schema.Schema.Encoded<typeof Talent>[K];
+    : K extends "status"
+      ? string
+      : Schema.Schema.Encoded<typeof Talent>[K];
 };
 
 const toInput = (row: TalentRow): TalentInput => ({
@@ -33,6 +35,8 @@ const toInput = (row: TalentRow): TalentInput => ({
   workModes: row.workModes,
   willingToRelocate: row.willingToRelocate,
   recruiterId: row.recruiterId,
+  status: row.status,
+  createdAt: row.createdAt,
 });
 
 const decodeTalent = Schema.decodeUnknownSync(Talent);
@@ -44,6 +48,27 @@ export const TalentRepositoryPostgresLayer = Layer.effect(
     const db = yield* DrizzleClient;
 
     return TalentRepository.of({
+      create: (talent, embedding) =>
+        Effect.gen(function* () {
+          const values: typeof talents.$inferInsert = {
+            id: talent.id,
+            name: talent.name,
+            title: talent.title,
+            skills: [...talent.skills],
+            keywords: [...talent.keywords],
+            experienceYears: talent.experienceYears,
+            location: talent.location,
+            workModes: [...talent.workModes],
+            willingToRelocate: talent.willingToRelocate,
+            recruiterId: talent.recruiterId,
+            status: talent.status,
+            createdAt: talent.createdAt,
+            embedding: embedding ? [...embedding] : null,
+          };
+          yield* Effect.promise(() => db.insert(talents).values(values));
+          return talent;
+        }),
+
       findById: (id) =>
         Effect.gen(function* () {
           const rows = yield* Effect.promise(() =>
@@ -60,6 +85,54 @@ export const TalentRepositoryPostgresLayer = Layer.effect(
         Effect.gen(function* () {
           const rows = yield* Effect.promise(() => db.select().from(talents));
           return rows.map(toDomain);
+        }),
+
+      updateSkills: (id, skills) =>
+        Effect.gen(function* () {
+          const result = yield* Effect.promise(() =>
+            db
+              .update(talents)
+              .set({ skills: [...skills] })
+              .where(eq(talents.id, id))
+              .returning({ id: talents.id })
+          );
+          if (result.length === 0) {
+            return yield* new TalentNotFoundError({ talentId: id });
+          }
+        }),
+
+      updateStatus: (id, status) =>
+        Effect.gen(function* () {
+          const result = yield* Effect.promise(() =>
+            db
+              .update(talents)
+              .set({ status })
+              .where(eq(talents.id, id))
+              .returning({ id: talents.id })
+          );
+          if (result.length === 0) {
+            return yield* new TalentNotFoundError({ talentId: id });
+          }
+        }),
+
+      update: (id, data) =>
+        Effect.gen(function* () {
+          const setData: Record<string, unknown> = {};
+          for (const [key, value] of Object.entries(data)) {
+            setData[key] = Array.isArray(value) ? [...value] : value;
+          }
+          const result = yield* Effect.promise(() =>
+            db
+              .update(talents)
+              .set(setData)
+              .where(eq(talents.id, id))
+              .returning()
+          );
+          const row = result[0];
+          if (!row) {
+            return yield* new TalentNotFoundError({ talentId: id });
+          }
+          return toDomain(row);
         }),
     });
   })

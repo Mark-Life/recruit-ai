@@ -42,3 +42,10 @@ export class RankingError extends Schema.TaggedError<RankingError>()(
     cause: Schema.optional(Schema.Unknown),
   }
 ) {}
+
+export class JobDescriptionNotFoundError extends Schema.TaggedError<JobDescriptionNotFoundError>()(
+  "JobDescriptionNotFoundError",
+  {
+    jobDescriptionId: Schema.String,
+  }
+) {}

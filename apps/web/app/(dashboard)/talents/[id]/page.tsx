@@ -13,47 +13,43 @@ import { Progress } from "@workspace/ui/components/progress";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import {
   ArrowRightIcon,
-  BriefcaseIcon,
   CheckIcon,
   CpuIcon,
-  MapPinIcon,
-  MonitorIcon,
   PencilIcon,
   PlusIcon,
   SparklesIcon,
   XIcon,
 } from "lucide-react";
-import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import { use, useState } from "react";
+import { Suspense, use, useState } from "react";
+import { LoadingSpinner } from "@/components/loading-spinner";
 import { PageHeader } from "@/components/page-header";
-import type {
-  MockScoreBreakdown,
-  MockTalent,
-  MockTalentJobMatch,
-} from "@/lib/mock-data";
-import { getJobMatchesForTalent, getTalentById } from "@/lib/mock-data";
+import type { Match, ScoreBreakdown, Talent } from "@/lib/api";
+import { useConfirmSkills, useMatchesForTalent, useTalent } from "@/lib/api";
 import { ResumeTextPanel } from "../resume-text-panel";
 import { TalentPipelineSteps } from "../talent-pipeline-steps";
 
 type Params = Promise<{ id: string }>;
 
-const MOCK_REDIRECT_DELAY_MS = 800;
-
 export default function TalentDetailPage({ params }: { params: Params }) {
   const { id } = use(params);
-  const talent = getTalentById(id);
 
-  if (!talent) {
-    return (
-      <>
-        <PageHeader title="Talent" />
-        <div className="flex items-center justify-center p-8 text-muted-foreground">
-          Talent not found.
-        </div>
-      </>
-    );
-  }
+  return (
+    <Suspense
+      fallback={
+        <>
+          <PageHeader title="Talent" />
+          <LoadingSpinner />
+        </>
+      }
+    >
+      <TalentDetailContent id={id} />
+    </Suspense>
+  );
+}
+
+function TalentDetailContent({ id }: { id: string }) {
+  const { data: talent } = useTalent(id);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -84,7 +80,7 @@ export default function TalentDetailPage({ params }: { params: Params }) {
 // Right panel dispatcher
 // ---------------------------------------------------------------------------
 
-function RightPanel({ talent }: { talent: MockTalent }) {
+function RightPanel({ talent }: { talent: Talent }) {
   switch (talent.status) {
     case "uploaded":
       return <UploadedPanel />;
@@ -206,11 +202,11 @@ function AnalysisStep({
 // Reviewing — edit extracted skills
 // ---------------------------------------------------------------------------
 
-function ReviewingPanel({ talent }: { talent: MockTalent }) {
+function ReviewingPanel({ talent }: { talent: Talent }) {
   const router = useRouter();
   const [skills, setSkills] = useState<readonly string[]>(talent.skills);
   const [newSkill, setNewSkill] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const confirmSkills = useConfirmSkills(talent.id);
 
   function handleRemoveSkill(skill: string) {
     setSkills((prev) => prev.filter((s) => s !== skill));
@@ -232,11 +228,11 @@ function ReviewingPanel({ talent }: { talent: MockTalent }) {
   }
 
   function handleConfirm() {
-    setIsSubmitting(true);
-    // TODO: call POST /api/talents/:id/skills
-    setTimeout(() => {
-      router.push(`/talents/${talent.id}` as Route);
-    }, MOCK_REDIRECT_DELAY_MS);
+    confirmSkills.mutate([...skills], {
+      onSuccess: () => {
+        router.push(`/talents/${talent.id}`);
+      },
+    });
   }
 
   return (
@@ -325,8 +321,8 @@ function ReviewingPanel({ talent }: { talent: MockTalent }) {
           )}
 
           <div className="flex justify-end pt-2">
-            <Button disabled={isSubmitting} onClick={handleConfirm}>
-              {isSubmitting ? (
+            <Button disabled={confirmSkills.isPending} onClick={handleConfirm}>
+              {confirmSkills.isPending ? (
                 "Matching..."
               ) : (
                 <>
@@ -346,8 +342,16 @@ function ReviewingPanel({ talent }: { talent: MockTalent }) {
 // Matched — show matching jobs
 // ---------------------------------------------------------------------------
 
-function MatchedPanel({ talent }: { talent: MockTalent }) {
-  const matches = getJobMatchesForTalent(talent.id);
+function MatchedPanel({ talent }: { talent: Talent }) {
+  return (
+    <Suspense fallback={<LoadingSpinner label="Loading matches..." />}>
+      <MatchedPanelContent talent={talent} />
+    </Suspense>
+  );
+}
+
+function MatchedPanelContent({ talent }: { talent: Talent }) {
+  const { data: matchList } = useMatchesForTalent(talent.id);
 
   return (
     <>
@@ -360,13 +364,13 @@ function MatchedPanel({ talent }: { talent: MockTalent }) {
             experience.
           </p>
         </div>
-        <Badge variant="secondary">{matches.length} found</Badge>
+        <Badge variant="secondary">{matchList.length} found</Badge>
       </div>
 
       {/* Scrollable list */}
       <ScrollArea className="min-h-0 flex-1">
         <div className="p-5">
-          {matches.length === 0 ? (
+          {matchList.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
               <p className="text-sm">No matching jobs found.</p>
               <p className="text-xs">
@@ -376,13 +380,8 @@ function MatchedPanel({ talent }: { talent: MockTalent }) {
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {matches.map((match, i) => (
-                <JobMatchCard
-                  key={match.id}
-                  match={match}
-                  rank={i + 1}
-                  talentSkills={talent.skills}
-                />
+              {matchList.map((match, i) => (
+                <JobMatchCard key={match.id} match={match} rank={i + 1} />
               ))}
             </div>
           )}
@@ -393,30 +392,14 @@ function MatchedPanel({ talent }: { talent: MockTalent }) {
 }
 
 // ---------------------------------------------------------------------------
-// Job match card (reverse of MatchCard in jobs)
+// Job match card
 // ---------------------------------------------------------------------------
 
 const PERCENT = 100;
 
-function JobMatchCard({
-  match,
-  rank,
-  talentSkills,
-}: {
-  match: MockTalentJobMatch;
-  rank: number;
-  talentSkills: readonly string[];
-}) {
-  const { job, breakdown, totalScore } = match;
+function JobMatchCard({ match, rank }: { match: Match; rank: number }) {
+  const { breakdown, totalScore } = match;
   const pct = Math.round(totalScore * PERCENT);
-
-  const talentSkillsLower = new Set(talentSkills.map((s) => s.toLowerCase()));
-  const matchedSkills = job.skills.filter((s) =>
-    talentSkillsLower.has(s.toLowerCase())
-  );
-  const missingSkills = job.skills.filter(
-    (s) => !talentSkillsLower.has(s.toLowerCase())
-  );
 
   return (
     <Card>
@@ -425,52 +408,18 @@ function JobMatchCard({
           <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted font-mono font-semibold text-xs">
             {rank}
           </span>
-          <span>{job.roleTitle}</span>
-          <span className="font-normal text-muted-foreground">
-            {job.organizationName}
-          </span>
+          <span>Job #{match.jobDescriptionId.slice(0, 8)}</span>
         </CardTitle>
       </CardHeader>
 
       <CardContent>
         <div className="flex flex-col gap-4">
-          {/* Meta */}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground text-sm">
-            <span className="inline-flex items-center gap-1">
-              <MapPinIcon className="size-3.5" />
-              {job.location}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <MonitorIcon className="size-3.5" />
-              {job.workMode}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <BriefcaseIcon className="size-3.5" />
-              {job.employmentType}
-            </span>
-          </div>
-
           {/* Total score */}
           <div className="flex items-center gap-3">
             <Progress className="h-2 flex-1" value={pct} />
             <span className="font-mono font-semibold text-sm tabular-nums">
               {pct}%
             </span>
-          </div>
-
-          {/* Skills */}
-          <div className="flex flex-wrap gap-1.5">
-            {matchedSkills.map((s) => (
-              <Badge className="gap-1" key={s} variant="default">
-                <CheckIcon className="size-3" />
-                {s}
-              </Badge>
-            ))}
-            {missingSkills.map((s) => (
-              <Badge key={s} variant="outline">
-                {s}
-              </Badge>
-            ))}
           </div>
 
           {/* Score breakdown */}
@@ -481,31 +430,31 @@ function JobMatchCard({
   );
 }
 
-const SCORE_LABELS: Record<keyof MockScoreBreakdown, string> = {
+const SCORE_LABELS: Record<keyof ScoreBreakdown, string> = {
   semanticSimilarity: "Semantic",
   keywordOverlap: "Keywords",
   experienceFit: "Experience",
   constraintFit: "Constraints",
 };
 
-function ScoreBreakdownGrid({ breakdown }: { breakdown: MockScoreBreakdown }) {
+function ScoreBreakdownGrid({ breakdown }: { breakdown: ScoreBreakdown }) {
   return (
     <div className="grid grid-cols-4 gap-3 rounded-lg border bg-muted/30 p-3">
-      {(
-        Object.entries(SCORE_LABELS) as [keyof MockScoreBreakdown, string][]
-      ).map(([key, label]) => {
-        const value = breakdown[key];
-        return (
-          <div className="flex flex-col items-center gap-1" key={key}>
-            <span className="font-mono font-semibold text-sm tabular-nums">
-              {value.toFixed(2)}
-            </span>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-              {label}
-            </span>
-          </div>
-        );
-      })}
+      {(Object.entries(SCORE_LABELS) as [keyof ScoreBreakdown, string][]).map(
+        ([key, label]) => {
+          const value = breakdown[key];
+          return (
+            <div className="flex flex-col items-center gap-1" key={key}>
+              <span className="font-mono font-semibold text-sm tabular-nums">
+                {value.toFixed(2)}
+              </span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                {label}
+              </span>
+            </div>
+          );
+        }
+      )}
     </div>
   );
 }

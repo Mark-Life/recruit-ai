@@ -1,4 +1,5 @@
-import { Config, Context, Effect, Layer, type Redacted } from "effect";
+import { env } from "@workspace/env/server";
+import { Context, Layer, Redacted } from "effect";
 
 export class DatabaseConfig extends Context.Tag("@recruit/DatabaseConfig")<
   DatabaseConfig,
@@ -6,10 +7,8 @@ export class DatabaseConfig extends Context.Tag("@recruit/DatabaseConfig")<
     readonly url: Redacted.Redacted;
   }
 >() {
-  static readonly layer = Layer.effect(
+  static readonly layer = Layer.succeed(
     DatabaseConfig,
-    Config.redacted("DATABASE_URL").pipe(
-      Effect.map((url) => DatabaseConfig.of({ url }))
-    )
+    DatabaseConfig.of({ url: Redacted.make(env.DATABASE_URL) })
   );
 }

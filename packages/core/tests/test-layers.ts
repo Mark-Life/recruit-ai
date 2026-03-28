@@ -1,4 +1,4 @@
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Stream } from "effect";
 import {
   RecruiterNotFoundError,
   TalentNotFoundError,
@@ -79,6 +79,10 @@ function makeLlmTestLayer(stores: TestStores) {
           willingToRelocate: false,
         })
       ),
+    streamStructureJd: () => Stream.succeed({}),
+    streamStructureResume: () => Stream.succeed({}),
+    streamStructureResumePdf: () => Stream.succeed({}),
+    streamClarifyingQuestions: () => Stream.succeed({ questions: [] }),
   });
 }
 
@@ -97,11 +101,44 @@ function makeVectorSearchTestLayer(stores: TestStores) {
 
 function makeTalentRepositoryTestLayer(stores: TestStores) {
   return Layer.succeed(TalentRepository, {
+    create: (talent) => {
+      stores.talents.set(talent.id, talent);
+      return Effect.succeed(talent);
+    },
     findById: (id) =>
       Effect.fromNullable(stores.talents.get(id)).pipe(
         Effect.mapError(() => new TalentNotFoundError({ talentId: id }))
       ),
     findAll: () => Effect.succeed([...stores.talents.values()]),
+    updateSkills: (id, skills) =>
+      Effect.fromNullable(stores.talents.get(id)).pipe(
+        Effect.mapError(() => new TalentNotFoundError({ talentId: id })),
+        Effect.tap((talent) =>
+          Effect.sync(() =>
+            stores.talents.set(id, { ...talent, skills } as Talent)
+          )
+        ),
+        Effect.asVoid
+      ),
+    updateStatus: (id, status) =>
+      Effect.fromNullable(stores.talents.get(id)).pipe(
+        Effect.mapError(() => new TalentNotFoundError({ talentId: id })),
+        Effect.tap((talent) =>
+          Effect.sync(() =>
+            stores.talents.set(id, { ...talent, status } as Talent)
+          )
+        ),
+        Effect.asVoid
+      ),
+    update: (id, data) =>
+      Effect.fromNullable(stores.talents.get(id)).pipe(
+        Effect.mapError(() => new TalentNotFoundError({ talentId: id })),
+        Effect.map((talent) => {
+          const updated = { ...talent, ...data } as Talent;
+          stores.talents.set(id, updated);
+          return updated;
+        })
+      ),
   });
 }
 

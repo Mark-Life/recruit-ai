@@ -20,4 +20,6 @@ export const jobDescriptions = pgTable("job_descriptions", {
   ).notNull(),
   experienceYearsMin: integer("experience_years_min").notNull(),
   experienceYearsMax: integer("experience_years_max").notNull(),
+  status: text("status").notNull().default("draft"),
+  createdAt: text("created_at").notNull(),
 });

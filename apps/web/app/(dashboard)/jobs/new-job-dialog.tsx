@@ -1,6 +1,7 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@workspace/ui/components/button";
 import {
   Dialog,
@@ -17,11 +18,12 @@ import { Textarea } from "@workspace/ui/components/textarea";
 import { ArrowRightIcon, PlusIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-
-const MOCK_REDIRECT_DELAY_MS = 800;
+import { SEED_ORGANIZATION_ID } from "@/lib/seed-constants";
+import { consumeStream } from "@/lib/utils";
 
 export function NewJobDialog() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
 
   const form = useForm({
@@ -29,13 +31,28 @@ export function NewJobDialog() {
       title: "",
       rawText: "",
     },
-    onSubmit: async () => {
-      // TODO: call POST /api/jobs with value.title + value.rawText
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, MOCK_REDIRECT_DELAY_MS);
+    onSubmit: async ({ value }) => {
+      const res = await fetch("/api/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rawText: value.rawText,
+          title: value.title,
+          organizationId: SEED_ORGANIZATION_ID,
+        }),
       });
+
+      if (!res.ok) {
+        throw new Error(`Failed to create job: ${res.status}`);
+      }
+
+      // Consume stream to completion so the backend persists the JD
+      await consumeStream(res);
+
+      await queryClient.invalidateQueries({ queryKey: ["jobs"] });
       setOpen(false);
-      router.push("/jobs/jd-2");
+      // Navigate to jobs list — the new job will appear there
+      router.push("/jobs");
     },
   });
 

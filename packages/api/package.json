@@ -13,8 +13,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "effect": "catalog:",
-    "@effect/platform": "catalog:"
+    "@effect/platform": "catalog:",
+    "@workspace/core": "workspace:*",
+    "@workspace/db": "workspace:*",
+    "@workspace/ai": "workspace:*",
+    "effect": "catalog:"
   },
   "devDependencies": {
     "@workspace/typescript-config": "workspace:*",
