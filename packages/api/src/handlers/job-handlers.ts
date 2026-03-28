@@ -10,14 +10,13 @@ export const JobsGroupLive = HttpApiBuilder.group(AppApi, "jobs", (handlers) =>
     .handle("list", () =>
       Effect.gen(function* () {
         const repo = yield* JobDescriptionRepository;
-        const jobs = yield* repo.findAll();
-        return jobs as readonly unknown[];
+        return yield* repo.findAll();
       })
     )
     .handle("get", ({ path }) =>
       Effect.gen(function* () {
         const repo = yield* JobDescriptionRepository;
-        return (yield* repo.findById(path.id as JobDescriptionId)) as unknown;
+        return yield* repo.findById(path.id as JobDescriptionId);
       }).pipe(
         Effect.catchTag("JobDescriptionNotFoundError", (e) =>
           Effect.fail(`Job not found: ${e.jobDescriptionId}`)
@@ -27,10 +26,7 @@ export const JobsGroupLive = HttpApiBuilder.group(AppApi, "jobs", (handlers) =>
     .handle("matches", ({ path }) =>
       Effect.gen(function* () {
         const repo = yield* MatchRepository;
-        const matches = yield* repo.findByJobDescriptionId(
-          path.id as JobDescriptionId
-        );
-        return matches as readonly unknown[];
+        return yield* repo.findByJobDescriptionId(path.id as JobDescriptionId);
       })
     )
 );

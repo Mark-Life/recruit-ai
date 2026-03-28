@@ -14,14 +14,13 @@ export const TalentsGroupLive = HttpApiBuilder.group(
       .handle("list", () =>
         Effect.gen(function* () {
           const repo = yield* TalentRepository;
-          const talents = yield* repo.findAll();
-          return talents as readonly unknown[];
+          return yield* repo.findAll();
         })
       )
       .handle("get", ({ path }) =>
         Effect.gen(function* () {
           const repo = yield* TalentRepository;
-          return (yield* repo.findById(path.id as TalentId)) as unknown;
+          return yield* repo.findById(path.id as TalentId);
         }).pipe(
           Effect.catchTag("TalentNotFoundError", (e) =>
             Effect.fail(`Talent not found: ${e.talentId}`)
@@ -31,10 +30,10 @@ export const TalentsGroupLive = HttpApiBuilder.group(
       .handle("confirmSkills", ({ path, payload }) =>
         Effect.gen(function* () {
           const orchestration = yield* TalentOrchestrationService;
-          return (yield* orchestration.confirmSkills(
+          return yield* orchestration.confirmSkills(
             path.id as TalentId,
             payload.skills
-          )) as unknown;
+          );
         }).pipe(
           Effect.catchTag("TalentNotFoundError", (e) =>
             Effect.fail(`Talent not found: ${e.talentId}`)
@@ -44,8 +43,7 @@ export const TalentsGroupLive = HttpApiBuilder.group(
       .handle("matches", ({ path }) =>
         Effect.gen(function* () {
           const repo = yield* MatchRepository;
-          const matches = yield* repo.findByTalentId(path.id as TalentId);
-          return matches as readonly unknown[];
+          return yield* repo.findByTalentId(path.id as TalentId);
         })
       )
 );
