@@ -1,4 +1,7 @@
 import { HttpApi, HttpApiEndpoint, HttpApiGroup } from "@effect/platform";
+import { StructuredJd } from "@workspace/core/domain/models/job-description";
+import { Match } from "@workspace/core/domain/models/match";
+import { Talent } from "@workspace/core/domain/models/talent";
 import { Schema } from "effect";
 
 // ---------------------------------------------------------------------------
@@ -23,19 +26,17 @@ export class HealthGroup extends HttpApiGroup.make("health")
 const JobIdPath = Schema.Struct({ id: Schema.String });
 
 export class JobsGroup extends HttpApiGroup.make("jobs")
-  .add(
-    HttpApiEndpoint.get("list", "/").addSuccess(Schema.Array(Schema.Unknown))
-  )
+  .add(HttpApiEndpoint.get("list", "/").addSuccess(Schema.Array(StructuredJd)))
   .add(
     HttpApiEndpoint.get("get", "/:id")
       .setPath(JobIdPath)
-      .addSuccess(Schema.Unknown)
+      .addSuccess(StructuredJd)
       .addError(Schema.String, { status: 404 })
   )
   .add(
     HttpApiEndpoint.get("matches", "/:id/matches")
       .setPath(JobIdPath)
-      .addSuccess(Schema.Array(Schema.Unknown))
+      .addSuccess(Schema.Array(Match))
       .addError(Schema.String, { status: 404 })
   )
   .prefix("/api/jobs") {}
@@ -51,26 +52,24 @@ const ConfirmSkillsPayload = Schema.Struct({
 });
 
 export class TalentsGroup extends HttpApiGroup.make("talents")
-  .add(
-    HttpApiEndpoint.get("list", "/").addSuccess(Schema.Array(Schema.Unknown))
-  )
+  .add(HttpApiEndpoint.get("list", "/").addSuccess(Schema.Array(Talent)))
   .add(
     HttpApiEndpoint.get("get", "/:id")
       .setPath(TalentIdPath)
-      .addSuccess(Schema.Unknown)
+      .addSuccess(Talent)
       .addError(Schema.String, { status: 404 })
   )
   .add(
     HttpApiEndpoint.put("confirmSkills", "/:id/skills")
       .setPath(TalentIdPath)
       .setPayload(ConfirmSkillsPayload)
-      .addSuccess(Schema.Unknown)
+      .addSuccess(Talent)
       .addError(Schema.String, { status: 404 })
   )
   .add(
     HttpApiEndpoint.get("matches", "/:id/matches")
       .setPath(TalentIdPath)
-      .addSuccess(Schema.Array(Schema.Unknown))
+      .addSuccess(Schema.Array(Match))
       .addError(Schema.String, { status: 404 })
   )
   .prefix("/api/talents") {}
