@@ -1,25 +1,17 @@
 "use client";
 
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import { SparklesIcon } from "lucide-react";
+import { Suspense } from "react";
+import { LoadingSpinner } from "@/components/loading-spinner";
 import { PageHeader } from "@/components/page-header";
 import { useJobs } from "@/lib/api";
 import { JobCard } from "./job-card";
 import { NewJobDialog } from "./new-job-dialog";
 
 function JobList() {
-  const { data: jobs, isLoading } = useJobs();
+  const { data: jobs } = useJobs();
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
-        <SparklesIcon className="size-5 animate-pulse" />
-        <p className="text-sm">Loading jobs...</p>
-      </div>
-    );
-  }
-
-  if (!jobs || jobs.length === 0) {
+  if (jobs.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
         <p className="text-sm">No job descriptions yet.</p>
@@ -43,7 +35,9 @@ export default function JobsPage() {
       <PageHeader action={<NewJobDialog />} title="Jobs" />
       <ScrollArea className="min-h-0 flex-1">
         <div className="p-4">
-          <JobList />
+          <Suspense fallback={<LoadingSpinner label="Loading jobs..." />}>
+            <JobList />
+          </Suspense>
         </div>
       </ScrollArea>
     </div>

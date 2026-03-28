@@ -1,25 +1,17 @@
 "use client";
 
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import { SparklesIcon } from "lucide-react";
+import { Suspense } from "react";
+import { LoadingSpinner } from "@/components/loading-spinner";
 import { PageHeader } from "@/components/page-header";
 import { useTalents } from "@/lib/api";
 import { NewTalentDialog } from "./new-talent-dialog";
 import { TalentCard } from "./talent-card";
 
 function TalentList() {
-  const { data: talents, isLoading } = useTalents();
+  const { data: talents } = useTalents();
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
-        <SparklesIcon className="size-5 animate-pulse" />
-        <p className="text-sm">Loading talents...</p>
-      </div>
-    );
-  }
-
-  if (!talents || talents.length === 0) {
+  if (talents.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
         <p className="text-sm">No talents yet.</p>
@@ -43,7 +35,9 @@ export default function TalentsPage() {
       <PageHeader action={<NewTalentDialog />} title="Talent Pool" />
       <ScrollArea className="min-h-0 flex-1">
         <div className="p-4">
-          <TalentList />
+          <Suspense fallback={<LoadingSpinner label="Loading talents..." />}>
+            <TalentList />
+          </Suspense>
         </div>
       </ScrollArea>
     </div>

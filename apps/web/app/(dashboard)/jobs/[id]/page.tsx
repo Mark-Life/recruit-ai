@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { ClarifyingQuestion } from "@workspace/core/domain/models/clarifying-question";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -20,10 +21,12 @@ import {
   SparklesIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { use, useState } from "react";
+import { Suspense, use, useState } from "react";
+import { LoadingSpinner } from "@/components/loading-spinner";
 import { PageHeader } from "@/components/page-header";
 import type { Job, Match, ScoreBreakdown } from "@/lib/api";
 import { useJob, useMatchesForJob } from "@/lib/api";
+import { consumeStream } from "@/lib/utils";
 import { JdTextPanel } from "../jd-text-panel";
 import { JobPipelineSteps } from "../job-pipeline-steps";
 
@@ -31,30 +34,23 @@ type Params = Promise<{ id: string }>;
 
 export default function JobDetailPage({ params }: { params: Params }) {
   const { id } = use(params);
-  const { data: job, isLoading } = useJob(id);
 
-  if (isLoading) {
-    return (
-      <>
-        <PageHeader title="Job" />
-        <div className="flex items-center justify-center gap-2 p-8 text-muted-foreground">
-          <SparklesIcon className="size-4 animate-pulse" />
-          Loading...
-        </div>
-      </>
-    );
-  }
+  return (
+    <Suspense
+      fallback={
+        <>
+          <PageHeader title="Job" />
+          <LoadingSpinner />
+        </>
+      }
+    >
+      <JobDetailContent id={id} />
+    </Suspense>
+  );
+}
 
-  if (!job) {
-    return (
-      <>
-        <PageHeader title="Job" />
-        <div className="flex items-center justify-center p-8 text-muted-foreground">
-          Job not found.
-        </div>
-      </>
-    );
-  }
+function JobDetailContent({ id }: { id: string }) {
+  const { data: job } = useJob(id);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -102,13 +98,6 @@ function RightPanel({ job }: { job: Job }) {
 // Refining — clarifying questions
 // ---------------------------------------------------------------------------
 
-interface ClarifyingQuestion {
-  field: string;
-  options?: readonly string[];
-  question: string;
-  reason: string;
-}
-
 function RefiningPanel({ job }: { job: Job }) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -133,15 +122,7 @@ function RefiningPanel({ job }: { job: Job }) {
         throw new Error(`Failed: ${res.status}`);
       }
       // Consume streaming response to completion
-      const reader = res.body?.getReader();
-      if (reader) {
-        for (;;) {
-          const { done } = await reader.read();
-          if (done) {
-            break;
-          }
-        }
-      }
+      await consumeStream(res);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs", job.id] });
@@ -232,7 +213,7 @@ function QuestionBlock({
   value: string;
   onChange: (val: string) => void;
 }) {
-  const hasOptions = question.options && question.options.length > 0;
+  const hasOptions = question.options.length > 0;
   const isAnswered = value.trim() !== "";
 
   return (
@@ -252,7 +233,7 @@ function QuestionBlock({
       <div className="pl-8">
         {hasOptions ? (
           <div className="flex flex-wrap gap-2">
-            {question.options?.map((opt) => (
+            {question.options.map((opt) => (
               <Button
                 key={opt}
                 onClick={() => onChange(opt)}
@@ -361,18 +342,15 @@ function AnalysisStep({
 // ---------------------------------------------------------------------------
 
 function ReadyPanel({ job }: { job: Job }) {
-  const { data: matches, isLoading } = useMatchesForJob(job.id);
+  return (
+    <Suspense fallback={<LoadingSpinner label="Loading matches..." />}>
+      <ReadyPanelContent job={job} />
+    </Suspense>
+  );
+}
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center gap-2 p-8 text-muted-foreground">
-        <SparklesIcon className="size-4 animate-pulse" />
-        Loading matches...
-      </div>
-    );
-  }
-
-  const matchList = matches ?? [];
+function ReadyPanelContent({ job }: { job: Job }) {
+  const { data: matchList } = useMatchesForJob(job.id);
 
   return (
     <>

@@ -19,6 +19,7 @@ import { ArrowRightIcon, PlusIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { SEED_ORGANIZATION_ID } from "@/lib/seed-constants";
+import { consumeStream } from "@/lib/utils";
 
 export function NewJobDialog() {
   const router = useRouter();
@@ -46,15 +47,7 @@ export function NewJobDialog() {
       }
 
       // Consume stream to completion so the backend persists the JD
-      const reader = res.body?.getReader();
-      if (reader) {
-        for (;;) {
-          const { done } = await reader.read();
-          if (done) {
-            break;
-          }
-        }
-      }
+      await consumeStream(res);
 
       await queryClient.invalidateQueries({ queryKey: ["jobs"] });
       setOpen(false);

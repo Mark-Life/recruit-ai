@@ -31,6 +31,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { SEED_RECRUITER_ID } from "@/lib/seed-constants";
+import { consumeStream } from "@/lib/utils";
 
 const MAX_FILE_SIZE_MB = 10;
 const BYTES_PER_KB = 1024;
@@ -87,15 +88,7 @@ export function NewTalentDialog() {
       }
 
       // Consume streaming response to completion
-      const reader = res.body?.getReader();
-      if (reader) {
-        for (;;) {
-          const { done } = await reader.read();
-          if (done) {
-            break;
-          }
-        }
-      }
+      await consumeStream(res);
 
       await queryClient.invalidateQueries({ queryKey: ["talents"] });
       setOpen(false);

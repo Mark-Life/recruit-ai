@@ -21,7 +21,8 @@ import {
   XIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { use, useState } from "react";
+import { Suspense, use, useState } from "react";
+import { LoadingSpinner } from "@/components/loading-spinner";
 import { PageHeader } from "@/components/page-header";
 import type { Match, ScoreBreakdown, Talent } from "@/lib/api";
 import { useConfirmSkills, useMatchesForTalent, useTalent } from "@/lib/api";
@@ -32,30 +33,23 @@ type Params = Promise<{ id: string }>;
 
 export default function TalentDetailPage({ params }: { params: Params }) {
   const { id } = use(params);
-  const { data: talent, isLoading } = useTalent(id);
 
-  if (isLoading) {
-    return (
-      <>
-        <PageHeader title="Talent" />
-        <div className="flex items-center justify-center gap-2 p-8 text-muted-foreground">
-          <SparklesIcon className="size-4 animate-pulse" />
-          Loading...
-        </div>
-      </>
-    );
-  }
+  return (
+    <Suspense
+      fallback={
+        <>
+          <PageHeader title="Talent" />
+          <LoadingSpinner />
+        </>
+      }
+    >
+      <TalentDetailContent id={id} />
+    </Suspense>
+  );
+}
 
-  if (!talent) {
-    return (
-      <>
-        <PageHeader title="Talent" />
-        <div className="flex items-center justify-center p-8 text-muted-foreground">
-          Talent not found.
-        </div>
-      </>
-    );
-  }
+function TalentDetailContent({ id }: { id: string }) {
+  const { data: talent } = useTalent(id);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -349,18 +343,15 @@ function ReviewingPanel({ talent }: { talent: Talent }) {
 // ---------------------------------------------------------------------------
 
 function MatchedPanel({ talent }: { talent: Talent }) {
-  const { data: matches, isLoading } = useMatchesForTalent(talent.id);
+  return (
+    <Suspense fallback={<LoadingSpinner label="Loading matches..." />}>
+      <MatchedPanelContent talent={talent} />
+    </Suspense>
+  );
+}
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center gap-2 p-8 text-muted-foreground">
-        <SparklesIcon className="size-4 animate-pulse" />
-        Loading matches...
-      </div>
-    );
-  }
-
-  const matchList = matches ?? [];
+function MatchedPanelContent({ talent }: { talent: Talent }) {
+  const { data: matchList } = useMatchesForTalent(talent.id);
 
   return (
     <>

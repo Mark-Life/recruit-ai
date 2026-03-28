@@ -1,6 +1,10 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import type { StructuredJd } from "@workspace/core/domain/models/job-description";
 import type { Match } from "@workspace/core/domain/models/match";
 import type { Talent } from "@workspace/core/domain/models/talent";
@@ -31,21 +35,21 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export function useJobs() {
-  return useQuery({
+  return useSuspenseQuery({
     queryKey: ["jobs"],
     queryFn: () => fetchJson<readonly Job[]>("/api/jobs"),
   });
 }
 
 export function useJob(id: string) {
-  return useQuery({
+  return useSuspenseQuery({
     queryKey: ["jobs", id],
     queryFn: () => fetchJson<Job>(`/api/jobs/${id}`),
   });
 }
 
 export function useMatchesForJob(jobId: string) {
-  return useQuery({
+  return useSuspenseQuery({
     queryKey: ["jobs", jobId, "matches"],
     queryFn: () => fetchJson<readonly Match[]>(`/api/jobs/${jobId}/matches`),
   });
@@ -56,14 +60,14 @@ export function useMatchesForJob(jobId: string) {
 // ---------------------------------------------------------------------------
 
 export function useTalents() {
-  return useQuery({
+  return useSuspenseQuery({
     queryKey: ["talents"],
     queryFn: () => fetchJson<readonly Talent[]>("/api/talents"),
   });
 }
 
 export function useTalent(id: string) {
-  return useQuery({
+  return useSuspenseQuery({
     queryKey: ["talents", id],
     queryFn: () => fetchJson<Talent>(`/api/talents/${id}`),
   });
@@ -87,7 +91,7 @@ export function useConfirmSkills(talentId: string) {
 }
 
 export function useMatchesForTalent(talentId: string) {
-  return useQuery({
+  return useSuspenseQuery({
     queryKey: ["talents", talentId, "matches"],
     queryFn: () =>
       fetchJson<readonly Match[]>(`/api/talents/${talentId}/matches`),
