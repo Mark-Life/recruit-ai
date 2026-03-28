@@ -1,63 +1,22 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { StructuredJd } from "@workspace/core/domain/models/job-description";
+import type { Match } from "@workspace/core/domain/models/match";
+import type { Talent } from "@workspace/core/domain/models/talent";
 
-// ---------------------------------------------------------------------------
-// Shared types — mirror domain models for frontend use
-// ---------------------------------------------------------------------------
+export type { JobStatus } from "@workspace/core/domain/models/job-description";
+export type {
+  Match,
+  ScoreBreakdown,
+} from "@workspace/core/domain/models/match";
+export type {
+  Talent,
+  TalentStatus,
+} from "@workspace/core/domain/models/talent";
 
-export type JobStatus = "draft" | "refining" | "matching" | "ready";
-export type TalentStatus = "uploaded" | "extracting" | "reviewing" | "matched";
-
-export interface Job {
-  createdAt: string;
-  employmentType: string;
-  experienceYearsMax: number;
-  experienceYearsMin: number;
-  id: string;
-  keywords: readonly string[];
-  location: string;
-  organizationId: string;
-  rawText: string;
-  roleTitle: string;
-  seniority: string;
-  skills: readonly string[];
-  status: JobStatus;
-  summary: string;
-  willingToSponsorRelocation: boolean;
-  workMode: string;
-}
-
-export interface Talent {
-  createdAt: string;
-  experienceYears: number;
-  id: string;
-  keywords: readonly string[];
-  location: string;
-  name: string;
-  recruiterId: string;
-  skills: readonly string[];
-  status: TalentStatus;
-  title: string;
-  willingToRelocate: boolean;
-  workModes: readonly string[];
-}
-
-export interface ScoreBreakdown {
-  constraintFit: number;
-  experienceFit: number;
-  keywordOverlap: number;
-  semanticSimilarity: number;
-}
-
-export interface Match {
-  breakdown: ScoreBreakdown;
-  id: string;
-  jobDescriptionId: string;
-  recruiterId: string;
-  talentId: string;
-  totalScore: number;
-}
+/** Alias for StructuredJd — used throughout the frontend as "Job". */
+export type Job = StructuredJd;
 
 // ---------------------------------------------------------------------------
 // Jobs
