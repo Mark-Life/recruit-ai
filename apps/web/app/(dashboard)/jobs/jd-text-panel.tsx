@@ -6,15 +6,14 @@ import {
   MapPinIcon,
   MonitorIcon,
 } from "lucide-react";
-import type { MockJobDescription } from "@/lib/mock-data";
+import type { Job } from "@/lib/api";
 
-export function JdTextPanel({ job }: { job: MockJobDescription }) {
+export function JdTextPanel({ job }: { job: Job }) {
   return (
     <div className="flex flex-col gap-5">
       {/* Header */}
       <div className="flex flex-col gap-1">
         <h2 className="font-semibold text-lg leading-tight">{job.roleTitle}</h2>
-        <p className="text-muted-foreground text-sm">{job.organizationName}</p>
       </div>
 
       {/* Meta tags */}

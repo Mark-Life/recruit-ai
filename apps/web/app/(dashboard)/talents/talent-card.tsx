@@ -14,11 +14,9 @@ import {
   MonitorIcon,
   SearchIcon,
   UploadIcon,
-  UsersIcon,
 } from "lucide-react";
-import type { Route } from "next";
 import Link from "next/link";
-import type { MockTalent, TalentStatus } from "@/lib/mock-data";
+import type { Talent, TalentStatus } from "@/lib/api";
 
 const STATUS_CONFIG: Record<
   TalentStatus,
@@ -73,12 +71,12 @@ function formatRelativeDate(iso: string): string {
   return `${days}d ago`;
 }
 
-export function TalentCard({ talent }: { talent: MockTalent }) {
+export function TalentCard({ talent }: { talent: Talent }) {
   const config = STATUS_CONFIG[talent.status];
   const StatusIcon = config.icon;
 
   return (
-    <Link href={`/talents/${talent.id}` as Route}>
+    <Link href={`/talents/${talent.id}`}>
       <Card className="transition-colors hover:bg-muted/50" size="sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -101,21 +99,13 @@ export function TalentCard({ talent }: { talent: MockTalent }) {
             </span>
           </CardDescription>
           <CardAction>
-            <span className="flex items-center gap-2">
-              {talent.status === "matched" && talent.matchCount > 0 && (
-                <span className="inline-flex items-center gap-1 text-muted-foreground text-xs">
-                  <UsersIcon className="size-3.5" />
-                  {talent.matchCount} jobs
-                </span>
-              )}
-              <Badge
-                className={cn("gap-1", config.className)}
-                variant={config.variant}
-              >
-                <StatusIcon className="size-3" />
-                {config.label}
-              </Badge>
-            </span>
+            <Badge
+              className={cn("gap-1", config.className)}
+              variant={config.variant}
+            >
+              <StatusIcon className="size-3" />
+              {config.label}
+            </Badge>
           </CardAction>
         </CardHeader>
       </Card>

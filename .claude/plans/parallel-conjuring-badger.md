@@ -258,7 +258,7 @@ Wire typed `HttpApiBuilder.api()` groups alongside raw `HttpRouter` streaming ro
 
 ---
 
-## Phase 6: Frontend Wiring
+## Phase 6: Frontend Wiring [done ✅]
 
 ### 6a. CRUD query hooks — `apps/web/lib/api.ts` (new)
 

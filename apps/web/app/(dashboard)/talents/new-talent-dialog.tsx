@@ -1,6 +1,7 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@workspace/ui/components/button";
 import {
   Dialog,
@@ -27,18 +28,32 @@ import {
   UploadIcon,
   XIcon,
 } from "lucide-react";
-import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { SEED_RECRUITER_ID } from "@/lib/seed-constants";
 
-const MOCK_REDIRECT_DELAY_MS = 800;
 const MAX_FILE_SIZE_MB = 10;
 const BYTES_PER_KB = 1024;
 const BYTES_PER_MB = BYTES_PER_KB * BYTES_PER_KB;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * BYTES_PER_MB;
 
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Strip the data URL prefix (e.g. "data:application/pdf;base64,")
+      const base64 = result.split(",")[1] ?? result;
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export function NewTalentDialog() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [inputMode, setInputMode] = useState<"text" | "pdf">("text");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -49,13 +64,42 @@ export function NewTalentDialog() {
       resumeText: "",
       resumeFile: null as File | null,
     },
-    onSubmit: async () => {
-      // TODO: call POST /api/talents with name + resumeText or resumeFile
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, MOCK_REDIRECT_DELAY_MS);
+    onSubmit: async ({ value }) => {
+      const body: Record<string, string> = {
+        name: value.name,
+        recruiterId: SEED_RECRUITER_ID,
+      };
+
+      if (inputMode === "pdf" && value.resumeFile) {
+        body.resumePdfBase64 = await fileToBase64(value.resumeFile);
+      } else {
+        body.resumeText = value.resumeText;
+      }
+
+      const res = await fetch("/api/talents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
+
+      if (!res.ok) {
+        throw new Error(`Failed to create talent: ${res.status}`);
+      }
+
+      // Consume streaming response to completion
+      const reader = res.body?.getReader();
+      if (reader) {
+        for (;;) {
+          const { done } = await reader.read();
+          if (done) {
+            break;
+          }
+        }
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ["talents"] });
       setOpen(false);
-      router.push("/talents/tal-3" as Route);
+      router.push("/talents");
     },
   });
 

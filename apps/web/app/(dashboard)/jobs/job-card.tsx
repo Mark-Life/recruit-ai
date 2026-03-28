@@ -14,10 +14,9 @@ import {
   MessageSquareIcon,
   MonitorIcon,
   SearchIcon,
-  UsersIcon,
 } from "lucide-react";
 import Link from "next/link";
-import type { JobStatus, MockJobDescription } from "@/lib/mock-data";
+import type { Job, JobStatus } from "@/lib/api";
 
 const STATUS_CONFIG: Record<
   JobStatus,
@@ -72,7 +71,7 @@ function formatRelativeDate(iso: string): string {
   return `${days}d ago`;
 }
 
-export function JobCard({ job }: { job: MockJobDescription }) {
+export function JobCard({ job }: { job: Job }) {
   const config = STATUS_CONFIG[job.status];
   const StatusIcon = config.icon;
 
@@ -85,10 +84,6 @@ export function JobCard({ job }: { job: MockJobDescription }) {
           </CardTitle>
           <CardDescription>
             <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <span className="inline-flex items-center gap-1">
-                <BriefcaseIcon className="size-3.5 text-muted-foreground" />
-                {job.organizationName}
-              </span>
               <span className="inline-flex items-center gap-1">
                 <MapPinIcon className="size-3.5 text-muted-foreground" />
                 {job.location}
@@ -103,21 +98,13 @@ export function JobCard({ job }: { job: MockJobDescription }) {
             </span>
           </CardDescription>
           <CardAction>
-            <span className="flex items-center gap-2">
-              {job.status === "ready" && job.matchCount > 0 && (
-                <span className="inline-flex items-center gap-1 text-muted-foreground text-xs">
-                  <UsersIcon className="size-3.5" />
-                  {job.matchCount} matches
-                </span>
-              )}
-              <Badge
-                className={cn("gap-1", config.className)}
-                variant={config.variant}
-              >
-                <StatusIcon className="size-3" />
-                {config.label}
-              </Badge>
-            </span>
+            <Badge
+              className={cn("gap-1", config.className)}
+              variant={config.variant}
+            >
+              <StatusIcon className="size-3" />
+              {config.label}
+            </Badge>
           </CardAction>
         </CardHeader>
       </Card>
