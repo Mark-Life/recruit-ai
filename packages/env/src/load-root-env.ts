@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { config } from "dotenv";
 
 /**
@@ -7,7 +8,14 @@ import { config } from "dotenv";
  * Does not override existing env vars (existing values take precedence).
  */
 const findMonorepoRoot = () => {
-  let dir = import.meta.dirname;
+  // import.meta.dirname may be undefined in bundled runtimes (e.g. Turbopack)
+  const startDir =
+    import.meta.dirname ??
+    (import.meta.url
+      ? resolve(fileURLToPath(import.meta.url), "..")
+      : process.cwd());
+
+  let dir = startDir;
   for (let i = 0; i < 10; i++) {
     if (existsSync(resolve(dir, "turbo.json"))) {
       return dir;

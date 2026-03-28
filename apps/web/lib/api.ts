@@ -26,8 +26,16 @@ export type Job = StructuredJd;
 // Jobs
 // ---------------------------------------------------------------------------
 
+function resolveUrl(path: string): string {
+  if (typeof window !== "undefined") {
+    return path;
+  }
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  return `${base}${path}`;
+}
+
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, init);
+  const res = await fetch(resolveUrl(url), init);
   if (!res.ok) {
     throw new Error(`${res.status} ${res.statusText}`);
   }
