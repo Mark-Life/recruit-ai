@@ -1,8 +1,8 @@
+import { EMBEDDING_DIMENSIONS } from "@workspace/core/domain/models/vector";
 import { Config, Context, Effect, Layer, type Redacted } from "effect";
 
 const DEFAULT_LANGUAGE_MODEL = "gemini-2.5-flash";
 const DEFAULT_EMBEDDING_MODEL = "gemini-embedding-2-preview";
-const DEFAULT_EMBEDDING_DIMENSIONS = 3072;
 
 export class AiConfig extends Context.Tag("@recruit/AiConfig")<
   AiConfig,
@@ -27,7 +27,7 @@ export class AiConfig extends Context.Tag("@recruit/AiConfig")<
       ),
       embeddingDimensions: Config.withDefault(
         Config.integer("GEMINI_EMBEDDING_DIMENSIONS"),
-        DEFAULT_EMBEDDING_DIMENSIONS
+        EMBEDDING_DIMENSIONS
       ),
     }).pipe(Effect.map((config) => AiConfig.of(config)))
   );

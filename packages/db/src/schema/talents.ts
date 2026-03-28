@@ -1,3 +1,4 @@
+import { EMBEDDING_DIMENSIONS } from "@workspace/core/domain/models/vector";
 import {
   boolean,
   index,
@@ -7,8 +8,6 @@ import {
   vector,
 } from "drizzle-orm/pg-core";
 import { recruiters } from "./recruiters";
-
-const EMBEDDING_DIMENSIONS = 3072;
 
 export const talents = pgTable(
   "talents",

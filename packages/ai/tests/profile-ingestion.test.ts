@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@effect/vitest";
 import { RecruiterId, TalentId } from "@workspace/core/domain/models/ids";
 import { Talent } from "@workspace/core/domain/models/talent";
+import { EMBEDDING_DIMENSIONS } from "@workspace/core/domain/models/vector";
 import {
   type EnrichedProfile,
   ProfileIngestionService,
@@ -40,7 +41,6 @@ const TestLayer = ProfileIngestionService.layer.pipe(
 // ---------------------------------------------------------------------------
 
 const EVAL_TIMEOUT = 120_000;
-const GEMINI_EMBEDDING_DIMS = 3072;
 
 describe.skipIf(!process.env.GOOGLE_GENERATIVE_AI_API_KEY)(
   "Profile Ingestion — enrich talent with keywords + embedding",
@@ -76,7 +76,7 @@ describe.skipIf(!process.env.GOOGLE_GENERATIVE_AI_API_KEY)(
           expect(hasRelevantKeyword).toBe(true);
 
           // Embedding: numeric array with expected dimensions
-          expect(result.embedding.length).toBe(GEMINI_EMBEDDING_DIMS);
+          expect(result.embedding.length).toBe(EMBEDDING_DIMENSIONS);
           expect(typeof result.embedding[0]).toBe("number");
           expect(Number.isFinite(result.embedding[0])).toBe(true);
 
