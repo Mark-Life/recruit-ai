@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "@effect/vitest";
+import { EMBEDDING_DIMENSIONS } from "@workspace/core/domain/models/vector";
 import {
   type IngestedPdfProfile,
   ProfileIngestionService,
@@ -32,7 +33,6 @@ const TestLayer = ProfileIngestionService.layer.pipe(
 // ---------------------------------------------------------------------------
 
 const EVAL_TIMEOUT = 120_000;
-const GEMINI_EMBEDDING_DIMS = 3072;
 
 describe.skipIf(!process.env.GOOGLE_GENERATIVE_AI_API_KEY)(
   "PDF Ingestion — extract structured profile from resume PDF",
@@ -63,7 +63,7 @@ describe.skipIf(!process.env.GOOGLE_GENERATIVE_AI_API_KEY)(
           }
 
           // Embedding: correct dimensions
-          expect(result.embedding.length).toBe(GEMINI_EMBEDDING_DIMS);
+          expect(result.embedding.length).toBe(EMBEDDING_DIMENSIONS);
           expect(typeof result.embedding[0]).toBe("number");
           expect(Number.isFinite(result.embedding[0])).toBe(true);
 
