@@ -207,7 +207,7 @@ Depends on: `ProfileIngestionService`, `TalentRepository`
 
 ---
 
-## Phase 5: API Endpoints
+## Phase 5: API Endpoints [done ✅]
 
 ### 5a. Typed CRUD endpoints in `packages/api/src/api.ts`
 
