@@ -1,3 +1,4 @@
+import { OrganizationNotFoundError } from "@workspace/core/domain/errors";
 import { Organization } from "@workspace/core/domain/models/organization";
 import { OrganizationRepository } from "@workspace/core/ports/organization-repository";
 import { eq } from "drizzle-orm";
@@ -23,7 +24,7 @@ export const OrganizationRepositoryPostgresLayer = Layer.effect(
           );
           const row = rows[0];
           if (!row) {
-            return yield* Effect.die(`Organization not found: ${id}`);
+            return yield* new OrganizationNotFoundError({ organizationId: id });
           }
           return toDomain(row);
         }),

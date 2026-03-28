@@ -49,3 +49,10 @@ export class JobDescriptionNotFoundError extends Schema.TaggedError<JobDescripti
     jobDescriptionId: Schema.String,
   }
 ) {}
+
+export class OrganizationNotFoundError extends Schema.TaggedError<OrganizationNotFoundError>()(
+  "OrganizationNotFoundError",
+  {
+    organizationId: Schema.String,
+  }
+) {}
