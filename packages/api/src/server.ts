@@ -1,9 +1,11 @@
 import { HttpApiBuilder, HttpServer } from "@effect/platform";
 import { GeminiEmbeddingLive, GeminiLlmLive } from "@workspace/ai/layers";
 import { JobOrchestrationService } from "@workspace/core/services/job-orchestration-service";
+import { JobQueryService } from "@workspace/core/services/job-query-service";
 import { ProfileIngestionService } from "@workspace/core/services/profile-ingestion-service";
 import { RankingService } from "@workspace/core/services/ranking-service";
 import { TalentOrchestrationService } from "@workspace/core/services/talent-orchestration-service";
+import { TalentQueryService } from "@workspace/core/services/talent-query-service";
 import { JobDescriptionRepositoryPostgresLayer } from "@workspace/db/adapters/job-description-repository-postgres";
 import { MatchRepositoryPostgresLayer } from "@workspace/db/adapters/match-repository-postgres";
 import { RecruiterRepositoryPostgresLayer } from "@workspace/db/adapters/recruiter-repository-postgres";
@@ -46,13 +48,23 @@ const BaseServiceLayer = Layer.mergeAll(
   ProfileIngestionService.layer
 ).pipe(Layer.provide(DbLayer), Layer.provide(AiLayer));
 
-const ServiceLayer = Layer.mergeAll(
+const QueryServiceLayer = Layer.mergeAll(
+  JobQueryService.layer,
+  TalentQueryService.layer
+).pipe(Layer.provide(DbLayer));
+
+const OrchestrationServiceLayer = Layer.mergeAll(
   JobOrchestrationService.layer,
   TalentOrchestrationService.layer
 ).pipe(
   Layer.provide(BaseServiceLayer),
   Layer.provide(DbLayer),
   Layer.provide(AiLayer)
+);
+
+const ServiceLayer = Layer.mergeAll(
+  QueryServiceLayer,
+  OrchestrationServiceLayer
 );
 
 // ---------------------------------------------------------------------------
@@ -65,8 +77,7 @@ const AppApiLive = HttpApiBuilder.api(AppApi).pipe(
   Layer.provide(TalentsGroupLive),
   Layer.provide(JobStreamRoutesLive),
   Layer.provide(TalentStreamRoutesLive),
-  Layer.provide(ServiceLayer),
-  Layer.provide(DbLayer)
+  Layer.provide(ServiceLayer)
 );
 
 export const createWebHandler = () =>
