@@ -25,10 +25,7 @@ export class AiConfig extends Context.Tag("@recruit/AiConfig")<
         Config.string("GEMINI_EMBEDDING_MODEL"),
         DEFAULT_EMBEDDING_MODEL
       ),
-      embeddingDimensions: Config.withDefault(
-        Config.integer("GEMINI_EMBEDDING_DIMENSIONS"),
-        EMBEDDING_DIMENSIONS
-      ),
+      embeddingDimensions: Effect.succeed(EMBEDDING_DIMENSIONS),
     }).pipe(Effect.map((config) => AiConfig.of(config)))
   );
 }
