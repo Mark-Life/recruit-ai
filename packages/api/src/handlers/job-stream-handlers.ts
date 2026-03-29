@@ -4,18 +4,9 @@ import {
   HttpServerRequest,
   HttpServerResponse,
 } from "@effect/platform";
-import type {
-  JobDescriptionId,
-  OrganizationId,
-} from "@workspace/core/domain/models/ids";
+import type { JobDescriptionId } from "@workspace/core/domain/models/ids";
 import { JobOrchestrationService } from "@workspace/core/services/job-orchestration-service";
 import { Effect, Schema, Stream } from "effect";
-
-const CreateJobBody = Schema.Struct({
-  rawText: Schema.String,
-  title: Schema.String,
-  organizationId: Schema.String,
-});
 
 const SubmitAnswersBody = Schema.Struct({
   answers: Schema.Array(
@@ -40,15 +31,11 @@ export const JobStreamRoutesLive = HttpApiBuilder.Router.use((router) =>
     const orchestration = yield* JobOrchestrationService;
 
     yield* router.post(
-      "/api/jobs",
+      "/api/jobs/:id/extract",
       Effect.gen(function* () {
-        const body = yield* HttpServerRequest.schemaBodyJson(CreateJobBody);
+        const { id } = yield* HttpRouter.params;
 
-        const stream = orchestration.createJob({
-          rawText: body.rawText,
-          title: body.title,
-          organizationId: body.organizationId as OrganizationId,
-        });
+        const stream = orchestration.extractJob(id as JobDescriptionId);
 
         return HttpServerResponse.stream(toNdjsonStream(stream), {
           contentType: "text/x-ndjson",

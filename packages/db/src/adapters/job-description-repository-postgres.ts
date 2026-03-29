@@ -38,6 +38,7 @@ const toInput = (row: JdRow): JdInput => ({
   experienceYearsMin: row.experienceYearsMin,
   experienceYearsMax: row.experienceYearsMax,
   status: row.status,
+  questions: row.questions as JdInput["questions"],
   createdAt: row.createdAt,
 });
 
@@ -57,6 +58,7 @@ export const JobDescriptionRepositoryPostgresLayer = Layer.effect(
               ...jd,
               skills: [...jd.skills],
               keywords: [...jd.keywords],
+              questions: [...jd.questions],
             })
           );
           return jd;

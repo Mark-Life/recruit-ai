@@ -1,4 +1,4 @@
-import { boolean, integer, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, integer, jsonb, pgTable, text } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
 
 export const jobDescriptions = pgTable("job_descriptions", {
@@ -21,5 +21,6 @@ export const jobDescriptions = pgTable("job_descriptions", {
   experienceYearsMin: integer("experience_years_min").notNull(),
   experienceYearsMax: integer("experience_years_max").notNull(),
   status: text("status").notNull().default("draft"),
+  questions: jsonb("questions").notNull().default([]),
   createdAt: text("created_at").notNull(),
 });

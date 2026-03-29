@@ -1,5 +1,9 @@
 import { HttpApiBuilder } from "@effect/platform";
-import type { JobDescriptionId } from "@workspace/core/domain/models/ids";
+import type {
+  JobDescriptionId,
+  OrganizationId,
+} from "@workspace/core/domain/models/ids";
+import { JobOrchestrationService } from "@workspace/core/services/job-orchestration-service";
 import { JobQueryService } from "@workspace/core/services/job-query-service";
 import { Effect } from "effect";
 import { AppApi } from "../api";
@@ -26,6 +30,16 @@ export const JobsGroupLive = HttpApiBuilder.group(AppApi, "jobs", (handlers) =>
       Effect.gen(function* () {
         const query = yield* JobQueryService;
         return yield* query.getMatches(path.id as JobDescriptionId);
+      })
+    )
+    .handle("createDraft", ({ payload }) =>
+      Effect.gen(function* () {
+        const orchestration = yield* JobOrchestrationService;
+        return yield* orchestration.createDraft({
+          rawText: payload.rawText,
+          title: payload.title,
+          organizationId: payload.organizationId as OrganizationId,
+        });
       })
     )
 );

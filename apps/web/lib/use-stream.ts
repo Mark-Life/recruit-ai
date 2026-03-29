@@ -137,18 +137,14 @@ interface CreateJobStreamOutput {
   }>;
 }
 
-export function useCreateJobStream() {
+export function useExtractJobStream(jobId: string) {
   const stream = useNdjsonStream<CreateJobStreamOutput>();
 
-  const mutate = useCallback(
-    (params: { rawText: string; title: string; organizationId: string }) => {
-      stream.start({
-        url: "/api/jobs",
-        body: params,
-      });
-    },
-    [stream.start]
-  );
+  const mutate = useCallback(() => {
+    stream.start({
+      url: `/api/jobs/${jobId}/extract`,
+    });
+  }, [jobId, stream.start]);
 
   return { ...stream, mutate };
 }

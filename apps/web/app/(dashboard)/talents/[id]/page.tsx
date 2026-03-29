@@ -396,6 +396,7 @@ function MatchedPanelContent({ talent }: { talent: Talent }) {
 // ---------------------------------------------------------------------------
 
 const PERCENT = 100;
+const ID_PREVIEW_LENGTH = 8;
 
 function JobMatchCard({ match, rank }: { match: Match; rank: number }) {
   const { breakdown, totalScore } = match;
@@ -408,7 +409,7 @@ function JobMatchCard({ match, rank }: { match: Match; rank: number }) {
           <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted font-mono font-semibold text-xs">
             {rank}
           </span>
-          <span>Job #{match.jobDescriptionId.slice(0, 8)}</span>
+          <span>Job #{match.jobDescriptionId.slice(0, ID_PREVIEW_LENGTH)}</span>
         </CardTitle>
       </CardHeader>
 
