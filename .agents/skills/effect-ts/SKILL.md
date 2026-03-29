@@ -29,3 +29,11 @@ Load the relevant document based on what you're working on:
 - **[services-and-layers.md](core-patterns/services-and-layers.md)** — Context.Tag services, Layer.effect/Layer.sync implementations, service-driven development, layer composition with provideMerge, layer memoization. Load when creating services, defining dependency injection, or composing layers.
 
 - **[testing.md](core-patterns/testing.md)** — @effect/vitest setup, it.effect/it.scoped/it.live, TestClock, providing test layers, worked example with test services. Load when writing or setting up tests for Effect code.
+
+---
+
+## Local Effect Source
+
+The Effect v3 repository is cloned to `~/.local/share/effect-solutions/effect` for reference.
+Use this to explore APIs, find usage examples, and understand implementation
+details when the documentation isn't enough.
