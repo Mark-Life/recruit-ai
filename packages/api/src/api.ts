@@ -25,6 +25,12 @@ export class HealthGroup extends HttpApiGroup.make("health")
 
 const JobIdPath = Schema.Struct({ id: Schema.String });
 
+const CreateDraftJobPayload = Schema.Struct({
+  rawText: Schema.String,
+  title: Schema.String,
+  organizationId: Schema.String,
+});
+
 export class JobsGroup extends HttpApiGroup.make("jobs")
   .add(HttpApiEndpoint.get("list", "/").addSuccess(Schema.Array(StructuredJd)))
   .add(
@@ -38,6 +44,11 @@ export class JobsGroup extends HttpApiGroup.make("jobs")
       .setPath(JobIdPath)
       .addSuccess(Schema.Array(Match))
       .addError(Schema.String, { status: 404 })
+  )
+  .add(
+    HttpApiEndpoint.post("createDraft", "/")
+      .setPayload(CreateDraftJobPayload)
+      .addSuccess(StructuredJd)
   )
   .prefix("/api/jobs") {}
 

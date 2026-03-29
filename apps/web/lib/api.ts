@@ -35,6 +35,19 @@ export function useJobs() {
   });
 }
 
+export function useCreateDraftJob() {
+  return useMutation({
+    mutationFn: async (params: {
+      rawText: string;
+      title: string;
+      organizationId: string;
+    }) => {
+      const client = await getClient();
+      return Effect.runPromise(client.jobs.createDraft({ payload: params }));
+    },
+  });
+}
+
 export function useJob(id: string) {
   return useSuspenseQuery({
     queryKey: ["jobs", id],

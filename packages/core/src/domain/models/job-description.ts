@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { ClarifyingQuestion } from "./clarifying-question";
 import { JobDescriptionId, OrganizationId } from "./ids";
 import { JdExtraction } from "./jd-extraction";
 
@@ -20,5 +21,8 @@ export class StructuredJd extends JdExtraction.extend<StructuredJd>(
   organizationId: OrganizationId,
   rawText: Schema.String,
   status: JobStatus,
+  questions: Schema.optionalWith(Schema.Array(ClarifyingQuestion), {
+    default: () => [],
+  }),
   createdAt: Schema.String,
 }) {}

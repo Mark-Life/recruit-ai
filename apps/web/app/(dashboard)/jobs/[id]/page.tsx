@@ -103,11 +103,7 @@ function RefiningPanel({ job }: { job: Job }) {
   const queryClient = useQueryClient();
   const [answers, setAnswers] = useState<Record<string, string>>({});
 
-  // TODO: fetch questions from the job creation stream output
-  // For now, the questions come from the createJob stream (stored in the JD).
-  // In a real flow, questions would be fetched via a dedicated endpoint.
-  // Placeholder: show a simple "no questions" state when we don't have them.
-  const questions: readonly ClarifyingQuestion[] = [];
+  const questions: readonly ClarifyingQuestion[] = job.questions ?? [];
 
   const submitAnswers = useMutation({
     mutationFn: async (
@@ -395,6 +391,7 @@ function ReadyPanelContent({ job }: { job: Job }) {
 // ---------------------------------------------------------------------------
 
 const PERCENT = 100;
+const ID_PREVIEW_LENGTH = 8;
 
 function MatchCard({ match, rank }: { match: Match; rank: number }) {
   const { breakdown, totalScore } = match;
@@ -407,7 +404,7 @@ function MatchCard({ match, rank }: { match: Match; rank: number }) {
           <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted font-mono font-semibold text-xs">
             {rank}
           </span>
-          <span>Talent #{match.talentId.slice(0, 8)}</span>
+          <span>Talent #{match.talentId.slice(0, ID_PREVIEW_LENGTH)}</span>
         </CardTitle>
       </CardHeader>
 

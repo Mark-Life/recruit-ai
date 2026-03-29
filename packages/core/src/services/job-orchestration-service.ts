@@ -33,16 +33,30 @@ type MatchingError =
   | TalentNotFoundError
   | JobDescriptionNotFoundError;
 
+type ExtractJobError = LlmError | JobDescriptionNotFoundError;
+
 export class JobOrchestrationService extends Context.Tag(
   "@recruit/JobOrchestrationService"
 )<
   JobOrchestrationService,
   {
+    /** Insert a draft row with placeholder extraction fields. */
+    readonly createDraft: (params: {
+      readonly rawText: string;
+      readonly title: string;
+      readonly organizationId: OrganizationId;
+    }) => Effect.Effect<StructuredJd>;
+
     readonly createJob: (params: {
       readonly rawText: string;
       readonly title: string;
       readonly organizationId: OrganizationId;
     }) => Stream.Stream<CreateJobStreamOutput, LlmError>;
+
+    /** Load a draft job by ID, stream LLM extraction + questions, then persist. */
+    readonly extractJob: (
+      id: JobDescriptionId
+    ) => Stream.Stream<CreateJobStreamOutput, ExtractJobError>;
 
     readonly submitAnswers: (
       id: JobDescriptionId,
@@ -63,6 +77,27 @@ export class JobOrchestrationService extends Context.Tag(
       const ranking = yield* RankingService;
 
       return JobOrchestrationService.of({
+        createDraft: (params) =>
+          jdRepo.create({
+            id: crypto.randomUUID() as JobDescriptionId,
+            organizationId: params.organizationId,
+            rawText: params.rawText,
+            roleTitle: params.title,
+            summary: "",
+            skills: [],
+            keywords: [],
+            seniority: "mid",
+            employmentType: "full-time",
+            workMode: "remote",
+            location: "",
+            willingToSponsorRelocation: false,
+            experienceYearsMin: 0,
+            experienceYearsMax: 0,
+            status: "draft",
+            questions: [],
+            createdAt: new Date().toISOString(),
+          } as StructuredJd),
+
         createJob: (params) =>
           Stream.unwrap(
             Effect.gen(function* () {
@@ -100,6 +135,59 @@ export class JobOrchestrationService extends Context.Tag(
               );
 
               return Stream.concat(jdPhase, persistAndQuestionsPhase);
+            })
+          ),
+
+        extractJob: (id) =>
+          Stream.unwrap(
+            Effect.gen(function* () {
+              const existingJd = yield* jdRepo.findById(id);
+              const jdRef = yield* Ref.make<DeepPartial<JdExtraction>>({});
+              const questionsRef = yield* Ref.make<
+                DeepPartial<ClarifyingQuestionsExtractionOutput>
+              >({});
+
+              const jdPhase = llm
+                .streamStructureJd({ raw: existingJd.rawText })
+                .pipe(
+                  Stream.tap((partial) => Ref.set(jdRef, partial)),
+                  Stream.map((jd): CreateJobStreamOutput => ({ jd }))
+                );
+
+              const persistAndQuestionsPhase = Stream.unwrap(
+                Effect.gen(function* () {
+                  const finalJd = yield* Ref.get(jdRef);
+
+                  yield* jdRepo.update(id, {
+                    ...(finalJd as JdExtraction),
+                    status: "refining",
+                  });
+
+                  return llm.streamClarifyingQuestions(existingJd.rawText).pipe(
+                    Stream.tap((partial) => Ref.set(questionsRef, partial)),
+                    Stream.map(
+                      (questions): CreateJobStreamOutput => ({
+                        jd: finalJd,
+                        questions,
+                      })
+                    )
+                  );
+                })
+              );
+
+              const persistQuestionsPhase = Stream.fromEffect(
+                Effect.gen(function* () {
+                  const finalQuestions = yield* Ref.get(questionsRef);
+                  const questionsList = (finalQuestions.questions ??
+                    []) as ClarifyingQuestionsExtractionOutput["questions"];
+                  yield* jdRepo.update(id, { questions: questionsList });
+                })
+              ).pipe(Stream.drain);
+
+              return Stream.concat(
+                Stream.concat(jdPhase, persistAndQuestionsPhase),
+                persistQuestionsPhase
+              );
             })
           ),
 
