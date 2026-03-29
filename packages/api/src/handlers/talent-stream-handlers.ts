@@ -1,18 +1,11 @@
 import {
   HttpApiBuilder,
-  HttpServerRequest,
+  HttpRouter,
   HttpServerResponse,
 } from "@effect/platform";
-import type { RecruiterId } from "@workspace/core/domain/models/ids";
+import type { TalentId } from "@workspace/core/domain/models/ids";
 import { TalentOrchestrationService } from "@workspace/core/services/talent-orchestration-service";
-import { Effect, Schema, Stream } from "effect";
-
-const CreateTalentBody = Schema.Struct({
-  name: Schema.String,
-  resumeText: Schema.optional(Schema.String),
-  resumePdfBase64: Schema.optional(Schema.String),
-  recruiterId: Schema.String,
-});
+import { Effect, Stream } from "effect";
 
 const toNdjsonStream = <E>(
   source: Stream.Stream<unknown, E>
@@ -28,23 +21,11 @@ export const TalentStreamRoutesLive = HttpApiBuilder.Router.use((router) =>
     const orchestration = yield* TalentOrchestrationService;
 
     yield* router.post(
-      "/api/talents",
+      "/api/talents/:id/extract",
       Effect.gen(function* () {
-        const body = yield* HttpServerRequest.schemaBodyJson(CreateTalentBody);
+        const { id } = yield* HttpRouter.params;
 
-        const recruiterId = body.recruiterId as RecruiterId;
-
-        const stream = body.resumePdfBase64
-          ? orchestration.createFromPdf({
-              name: body.name,
-              pdfBase64: body.resumePdfBase64,
-              recruiterId,
-            })
-          : orchestration.createFromText({
-              name: body.name,
-              resumeText: body.resumeText ?? "",
-              recruiterId,
-            });
+        const stream = orchestration.extractTalent(id as TalentId);
 
         return HttpServerResponse.stream(toNdjsonStream(stream), {
           contentType: "text/x-ndjson",

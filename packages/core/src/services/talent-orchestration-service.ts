@@ -12,24 +12,25 @@ import { LlmPort } from "../ports/llm-port";
 import { TalentRepository } from "../ports/talent-repository";
 import { ProfileIngestionService } from "./profile-ingestion-service";
 
-type CreateTalentError = LlmError | EmbeddingError;
+type ExtractTalentError = LlmError | EmbeddingError | TalentNotFoundError;
 
 export class TalentOrchestrationService extends Context.Tag(
   "@recruit/TalentOrchestrationService"
 )<
   TalentOrchestrationService,
   {
-    readonly createFromText: (params: {
+    /** Insert a draft talent row with placeholder extraction fields. */
+    readonly createDraft: (params: {
       readonly name: string;
-      readonly resumeText: string;
+      readonly resumeText?: string;
+      readonly resumePdfBase64?: string;
       readonly recruiterId: RecruiterId;
-    }) => Stream.Stream<DeepPartial<ResumeExtraction>, CreateTalentError>;
+    }) => Effect.Effect<Talent>;
 
-    readonly createFromPdf: (params: {
-      readonly name: string;
-      readonly pdfBase64: string;
-      readonly recruiterId: RecruiterId;
-    }) => Stream.Stream<DeepPartial<ResumeExtraction>, CreateTalentError>;
+    /** Load a draft talent by ID, stream LLM extraction, then persist enriched result. */
+    readonly extractTalent: (
+      id: TalentId
+    ) => Stream.Stream<DeepPartial<ResumeExtraction>, ExtractTalentError>;
 
     readonly confirmSkills: (
       id: TalentId,
@@ -44,73 +45,75 @@ export class TalentOrchestrationService extends Context.Tag(
       const talentRepo = yield* TalentRepository;
       const profileIngestion = yield* ProfileIngestionService;
 
-      const buildAndPersist = (
+      /** Update the existing draft with extraction results and generate embedding. */
+      const persistExtraction = (
+        id: TalentId,
         ref: Ref.Ref<DeepPartial<ResumeExtraction>>,
-        name: string,
-        recruiterId: RecruiterId
+        existing: Talent
       ) =>
         Effect.gen(function* () {
           const extraction = (yield* Ref.get(ref)) as ResumeExtraction;
 
-          const talent = new Talent({
-            id: crypto.randomUUID() as TalentId,
-            name,
+          const updated = yield* talentRepo.update(id, {
             title: extraction.title,
             skills: [...extraction.skills],
-            keywords: [],
             experienceYears: extraction.experienceYears,
             location: extraction.location,
             workModes: [...extraction.workModes],
             willingToRelocate: extraction.willingToRelocate,
-            recruiterId,
             status: "reviewing",
-            createdAt: new Date().toISOString(),
           });
 
-          const enriched = yield* profileIngestion.enrich(talent);
-
-          yield* talentRepo.create(
-            new Talent({
-              ...enriched.talent,
-              keywords: [...enriched.keywords],
-            }),
-            [...enriched.embedding]
+          const enriched = yield* profileIngestion.enrich(
+            new Talent({ ...existing, ...updated })
           );
+
+          yield* talentRepo.update(id, { keywords: [...enriched.keywords] }, [
+            ...enriched.embedding,
+          ]);
         });
 
       return TalentOrchestrationService.of({
-        createFromText: (params) =>
-          Stream.unwrap(
-            Effect.gen(function* () {
-              const ref = yield* Ref.make<DeepPartial<ResumeExtraction>>({});
-
-              const extractionStream = llm
-                .streamStructureResume(params.resumeText)
-                .pipe(Stream.tap((partial) => Ref.set(ref, partial)));
-
-              const persistPhase = Stream.fromEffect(
-                buildAndPersist(ref, params.name, params.recruiterId)
-              ).pipe(Stream.drain);
-
-              return Stream.concat(extractionStream, persistPhase);
+        createDraft: (params) =>
+          talentRepo.create(
+            new Talent({
+              id: crypto.randomUUID() as TalentId,
+              name: params.name,
+              title: "",
+              skills: [],
+              keywords: [],
+              experienceYears: 0,
+              location: "",
+              workModes: [],
+              willingToRelocate: false,
+              resumeText: params.resumeText,
+              resumePdfBase64: params.resumePdfBase64,
+              recruiterId: params.recruiterId,
+              status: "uploaded",
+              createdAt: new Date().toISOString(),
             })
           ),
 
-        createFromPdf: (params) =>
+        extractTalent: (id) =>
           Stream.unwrap(
             Effect.gen(function* () {
+              const existing = yield* talentRepo.findById(id);
               const ref = yield* Ref.make<DeepPartial<ResumeExtraction>>({});
 
-              const pdfBytes = Uint8Array.from(atob(params.pdfBase64), (c) =>
-                c.charCodeAt(0)
-              );
-
-              const extractionStream = llm
-                .streamStructureResumePdf(pdfBytes)
-                .pipe(Stream.tap((partial) => Ref.set(ref, partial)));
+              const extractionStream = existing.resumePdfBase64
+                ? llm
+                    .streamStructureResumePdf(
+                      Uint8Array.from(atob(existing.resumePdfBase64), (c) =>
+                        c.charCodeAt(0)
+                      )
+                    )
+                    .pipe(Stream.tap((partial) => Ref.set(ref, partial)))
+                : llm
+                    .streamStructureResume(existing.resumeText ?? "")
+                    .pipe(Stream.tap((partial) => Ref.set(ref, partial)));
 
               const persistPhase = Stream.fromEffect(
-                buildAndPersist(ref, params.name, params.recruiterId)
+                persistExtraction(id, ref, existing)
               ).pipe(Stream.drain);
 
               return Stream.concat(extractionStream, persistPhase);

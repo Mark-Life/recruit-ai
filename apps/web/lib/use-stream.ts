@@ -188,23 +188,14 @@ interface ResumeExtractionOutput {
   workModes?: readonly string[];
 }
 
-export function useCreateTalentStream() {
+export function useExtractTalentStream(talentId: string) {
   const stream = useNdjsonStream<ResumeExtractionOutput>();
 
-  const mutate = useCallback(
-    (params: {
-      name: string;
-      resumeText?: string;
-      resumePdfBase64?: string;
-      recruiterId: string;
-    }) => {
-      stream.start({
-        url: "/api/talents",
-        body: params,
-      });
-    },
-    [stream.start]
-  );
+  const mutate = useCallback(() => {
+    stream.start({
+      url: `/api/talents/${talentId}/extract`,
+    });
+  }, [talentId, stream.start]);
 
   return { ...stream, mutate };
 }

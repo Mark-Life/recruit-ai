@@ -72,6 +72,20 @@ export function useMatchesForJob(jobId: string) {
 // Talents
 // ---------------------------------------------------------------------------
 
+export function useCreateDraftTalent() {
+  return useMutation({
+    mutationFn: async (params: {
+      name: string;
+      resumeText?: string;
+      resumePdfBase64?: string;
+      recruiterId: string;
+    }) => {
+      const client = await getClient();
+      return Effect.runPromise(client.talents.createDraft({ payload: params }));
+    },
+  });
+}
+
 export function useTalents() {
   return useSuspenseQuery({
     queryKey: ["talents"],

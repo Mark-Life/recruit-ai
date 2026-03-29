@@ -1,58 +1,47 @@
-import { Badge } from "@workspace/ui/components/badge";
 import { Separator } from "@workspace/ui/components/separator";
-import { MapPinIcon, MonitorIcon, UserIcon } from "lucide-react";
+import { FileTextIcon } from "lucide-react";
 import type { Talent } from "@/lib/api";
 
+/** Left panel — shows the raw resume input (text or PDF indicator). */
 export function ResumeTextPanel({ talent }: { talent: Talent }) {
   return (
     <div className="flex flex-col gap-5">
-      {/* Header */}
       <div className="flex flex-col gap-1">
         <h2 className="font-semibold text-lg leading-tight">{talent.name}</h2>
-        <p className="text-muted-foreground text-sm">{talent.title}</p>
-      </div>
-
-      {/* Meta tags */}
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="inline-flex items-center gap-1 text-muted-foreground">
-          <MapPinIcon className="size-3.5" />
-          {talent.location}
-        </span>
-        <span className="inline-flex items-center gap-1 text-muted-foreground">
-          <MonitorIcon className="size-3.5" />
-          {talent.workModes.join(" / ")}
-        </span>
-        <span className="inline-flex items-center gap-1 text-muted-foreground">
-          <UserIcon className="size-3.5" />
-          {talent.experienceYears} yrs exp
-        </span>
-      </div>
-
-      {/* Skills */}
-      <div className="flex flex-wrap gap-1.5">
-        {talent.skills.map((s) => (
-          <Badge key={s} variant="secondary">
-            {s}
-          </Badge>
-        ))}
+        <p className="text-muted-foreground text-sm">
+          {talent.resumePdfBase64 ? "PDF resume" : "Pasted resume text"}
+        </p>
       </div>
 
       <Separator />
 
-      {/* Keywords */}
-      {talent.keywords.length > 0 && (
+      {talent.resumeText && (
         <div className="flex flex-col gap-2">
           <span className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
-            Keywords
+            Resume Text
           </span>
-          <div className="flex flex-wrap gap-1.5">
-            {talent.keywords.map((kw) => (
-              <Badge key={kw} variant="outline">
-                {kw}
-              </Badge>
-            ))}
+          <p className="whitespace-pre-wrap text-sm leading-relaxed">
+            {talent.resumeText}
+          </p>
+        </div>
+      )}
+
+      {talent.resumePdfBase64 && !talent.resumeText && (
+        <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
+          <FileTextIcon className="size-5 shrink-0 text-muted-foreground" />
+          <div className="flex flex-col">
+            <span className="font-medium text-sm">Uploaded PDF</span>
+            <span className="text-muted-foreground text-xs">
+              PDF uploaded for extraction
+            </span>
           </div>
         </div>
+      )}
+
+      {!(talent.resumeText || talent.resumePdfBase64) && (
+        <p className="text-muted-foreground text-sm">
+          No resume source available.
+        </p>
       )}
     </div>
   );
