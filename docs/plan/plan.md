@@ -109,3 +109,17 @@ Using **Effect HTTP API** (`@effect/platform`) — schema-first, OpenAPI 3.1.0 f
 - [x] Full Layer composition (`main.ts`) with `HttpApiBuilder.serve()` or `toWebHandler()` for Next.js
 - [x] OpenAPI spec via `OpenApi.fromApi()` + Scalar/Swagger docs UI layer
 - [x] Type-safe client via `HttpApiClient` for frontend consumption
+
+## Phase 6: Vector Matching Architecture (Qdrant) ✅
+
+Migrate vector storage from Postgres (pgvector) to Qdrant. Bi-directional matching (job->talents, talent->jobs). See [`matching-architecture.md`](./matching-architecture.md).
+
+- [x] New `packages/vector` package with Qdrant client, adapter, config, collection setup
+- [x] Remove embedding columns from Postgres (talents + job_descriptions)
+- [x] Remove `matches` table — matching is now live query, not persisted
+- [x] Squash old migrations into single baseline
+- [x] Qdrant adapter implementing `VectorSearchPort` (upsert, search, delete)
+- [x] Hard constraint filtering via Qdrant payload filters (work mode, location)
+- [x] Bi-directional: job match cards on talent detail view
+- [x] Docker compose updated with Qdrant service
+- [x] Ranking service refactored to use Qdrant-based vector search

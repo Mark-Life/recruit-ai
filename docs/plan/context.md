@@ -22,7 +22,7 @@ DRIVING ADAPTERS              CORE              DRIVEN ADAPTERS
 
 ┌──────────────┐         ┌──────────┐      ┌─────────────────────┐
 │ REST API     │────────>│          │─────>│ LLM Provider        │
-│              │         │          │      │ (TBD)               │
+│              │         │          │      │ (Gemini Flash)      │
 └──────────────┘         │          │      └─────────────────────┘
                          │          │      ┌─────────────────────┐
 ┌──────────────┐         │  Domain  │─────>│ Embedding Provider  │
@@ -30,7 +30,7 @@ DRIVING ADAPTERS              CORE              DRIVEN ADAPTERS
 │ (resume in)  │         │          │      └─────────────────────┘
 └──────────────┘         │          │      ┌─────────────────────┐
                          │          │─────>│ Vector Search       │
-┌──────────────┐         │          │      │ (pgvector)          │
+┌──────────────┐         │          │      │ (Qdrant)            │
 │ CLI / Script │────────>│          │      └─────────────────────┘
 │ (batch rank) │         │          │      ┌─────────────────────┐
 └──────────────┘         │          │─────>│ Database            │
@@ -68,7 +68,7 @@ DRIVING ADAPTERS              CORE              DRIVEN ADAPTERS
 
 - **Scoring is pure domain logic** - no external calls, fully testable
 - **LLM/Embedding providers are swappable** - switch Claude <-> GPT without touching core
-- **Vector DB is swappable** - pgvector in prod, in-memory for tests
+- **Vector DB is swappable** - Qdrant in prod, in-memory for tests
 - **Effect.ts** - ports map to Effect Services/Layers naturally
 
 ## Tech Stack
@@ -78,8 +78,8 @@ DRIVING ADAPTERS              CORE              DRIVEN ADAPTERS
 - **Backend**: Effect HTTP API (`@effect/platform`) — schema-first routes with OpenAPI generation
 - **ORM**: Drizzle ORM (with Effect schema integration via `drizzle-orm/effect-schema`)
 - **Database**: PostgreSQL
-- **Vector DB**: pgvector (PostgreSQL extension)
-- **LLM**: TBD
+- **Vector DB**: Qdrant (dedicated vector DB with ANN search + payload filtering)
+- **LLM**: Gemini Flash
 - **Embeddings**: Gemini Embeddings 2
 - **Infra**: Vercel
 
@@ -201,7 +201,7 @@ src/
 │   ├── embedding/
 │   │   └── GeminiEmbeddingAdapter.ts
 │   ├── vector/
-│   │   └── PgVectorAdapter.ts
+│   │   └── QdrantAdapter.ts
 │   └── db/
 │       ├── schema.ts           # Drizzle table definitions (pgTable)
 │       ├── PostgresAdapter.ts  # Shared pg connection layer
@@ -338,7 +338,7 @@ export const GeminiEmbeddingLayer = Layer.effect(
 const AppLayer = RankingService.layer.pipe(
   Layer.provideMerge(GeminiEmbeddingLayer),
   Layer.provideMerge(SomeLlmLayer),
-  Layer.provideMerge(PgVectorLayer),
+  Layer.provideMerge(QdrantVectorLayer),
   Layer.provideMerge(TalentRepositoryPostgresLayer),
   Layer.provideMerge(RecruiterRepositoryPostgresLayer),
   Layer.provideMerge(postgresLayer),
@@ -356,9 +356,14 @@ const AppLayer = RankingService.layer.pipe(
 - Testing: provide `testLayer` with in-memory implementations. Scoring is pure, test directly.
 - Config lives in `Context.Tag` services, injected into adapters. Tests use `Layer.succeed(...)`.
 
-## Next Steps
+## Package Architecture
 
-- [ ] Define `goal.md` - concrete goals and scope for v1
-- [ ] Define `plan.md` - implementation plan with phases
-- [ ] Set up Next.js project with Vercel deployment
+```
+packages/core    (domain + ports)
+   ↑         ↑          ↑
+packages/db  packages/vector  packages/ai
+(postgres)   (qdrant)         (gemini)
+```
+
+`packages/vector` is a dedicated adapter package for vector search. Qdrant owns all vector storage + ANN search with native payload filtering. Postgres stays purely relational. See [`matching-architecture.md`](./matching-architecture.md) for details.
 
