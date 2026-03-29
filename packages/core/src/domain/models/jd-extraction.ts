@@ -25,13 +25,9 @@ export class JdExtraction extends Schema.Class<JdExtraction>("JdExtraction")({
   roleTitle: Schema.String.annotations({
     description: "The job title, e.g. 'Senior Frontend Engineer'",
   }),
-  skills: Schema.Array(Schema.String).annotations({
-    description:
-      "Normalized technology/skill tags, e.g. ['React', 'TypeScript', 'Node.js']",
-  }),
   keywords: Schema.Array(Schema.String).annotations({
     description:
-      "Additional relevant keywords for matching, e.g. ['frontend', 'SPA', 'UI']",
+      "Normalized technology skills and domain keywords for matching, e.g. ['React', 'TypeScript', 'Node.js', 'frontend', 'SPA', 'UI']",
   }),
   seniority: SeniorityLevel.annotations({
     description: "Seniority level",

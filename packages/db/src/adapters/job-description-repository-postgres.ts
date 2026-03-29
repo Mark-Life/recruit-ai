@@ -1,7 +1,7 @@
 import { JobDescriptionNotFoundError } from "@workspace/core/domain/errors";
 import { StructuredJd } from "@workspace/core/domain/models/job-description";
 import { JobDescriptionRepository } from "@workspace/core/ports/job-description-repository";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { Effect, Layer, Schema } from "effect";
 import { DrizzleClient } from "../client";
 import { jobDescriptions } from "../schema/job-descriptions";
@@ -28,7 +28,6 @@ const toInput = (row: JdRow): JdInput => ({
   rawText: row.rawText,
   summary: row.summary,
   roleTitle: row.roleTitle,
-  skills: row.skills,
   keywords: row.keywords,
   seniority: row.seniority,
   employmentType: row.employmentType,
@@ -56,7 +55,6 @@ export const JobDescriptionRepositoryPostgresLayer = Layer.effect(
           yield* Effect.promise(() =>
             db.insert(jobDescriptions).values({
               ...jd,
-              skills: [...jd.skills],
               keywords: [...jd.keywords],
               questions: [...jd.questions],
             })
@@ -76,6 +74,20 @@ export const JobDescriptionRepositoryPostgresLayer = Layer.effect(
             });
           }
           return toDomain(row);
+        }),
+
+      findByIds: (ids) =>
+        Effect.gen(function* () {
+          if (ids.length === 0) {
+            return [];
+          }
+          const rows = yield* Effect.promise(() =>
+            db
+              .select()
+              .from(jobDescriptions)
+              .where(inArray(jobDescriptions.id, [...ids]))
+          );
+          return rows.map(toDomain);
         }),
 
       findAll: () =>

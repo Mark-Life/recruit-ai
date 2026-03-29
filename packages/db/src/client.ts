@@ -16,7 +16,7 @@ export class DrizzleClient extends Context.Tag("@recruit/DrizzleClient")<
 
       yield* Effect.addFinalizer(() => Effect.promise(() => sql.end()));
 
-      return drizzle({ client: sql, schema });
+      return drizzle({ client: sql, schema, relations: schema.relations });
     })
   );
 }

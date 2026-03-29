@@ -12,13 +12,9 @@ export class ResumeExtraction extends Schema.Class<ResumeExtraction>(
     description:
       "Current or most recent job title, e.g. 'Senior Frontend Engineer'",
   }),
-  skills: Schema.Array(Schema.String).annotations({
-    description:
-      "Normalized technology/skill tags extracted from the resume, e.g. ['React', 'TypeScript', 'Node.js']",
-  }),
   keywords: Schema.Array(Schema.String).annotations({
     description:
-      "Additional domain keywords for matching, e.g. ['frontend', 'SPA', 'microservices']",
+      "Normalized technology skills and domain keywords for matching, e.g. ['React', 'TypeScript', 'Node.js', 'frontend', 'SPA', 'microservices']",
   }),
   experienceYears: Schema.Number.annotations({
     description: "Total years of professional experience (integer)",

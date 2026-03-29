@@ -17,6 +17,7 @@ import {
   ClockIcon,
   MapPinIcon,
   MonitorIcon,
+  RefreshCwIcon,
   SparklesIcon,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -91,7 +92,7 @@ function FormPhase({ onCreated }: { onCreated: (draft: DraftInfo) => void }) {
       <ScrollArea className="min-h-0 flex-1">
         <div className="mx-auto max-w-lg p-6">
           <p className="mb-6 text-muted-foreground text-sm">
-            Paste the job description and we'll extract skills, match talents,
+            Paste the job description and we'll extract keywords, match talents,
             and rank candidates automatically.
           </p>
 
@@ -228,6 +229,7 @@ function ExtractionPhase({ draft }: { draft: DraftInfo }) {
             error={stream.error}
             isStreaming={stream.isStreaming}
             jobId={draft.id}
+            onRetry={() => stream.mutate()}
             questions={questions}
             streamDone={streamDone}
           />
@@ -249,7 +251,6 @@ interface StreamingJd {
   location?: string;
   roleTitle?: string;
   seniority?: string;
-  skills?: readonly string[];
   summary?: string;
   willingToSponsorRelocation?: boolean;
   workMode?: string;
@@ -267,8 +268,10 @@ function StreamingJdPanel({
   isStreaming: boolean;
 }) {
   const showMetaSkeleton = isStreaming && !jd?.location && !jd?.workMode;
-  const showSkillsSkeleton =
-    isStreaming && !jd?.seniority && (!jd?.skills || jd.skills.length === 0);
+  const showKeywordsSkeleton =
+    isStreaming &&
+    !jd?.seniority &&
+    (!jd?.keywords || jd.keywords.length === 0);
   const showSummarySkeleton = isStreaming && !jd?.summary;
 
   return (
@@ -316,8 +319,8 @@ function StreamingJdPanel({
         </div>
       )}
 
-      {/* Skills */}
-      {showSkillsSkeleton ? (
+      {/* Keywords */}
+      {showKeywordsSkeleton ? (
         <div className="flex flex-wrap gap-1.5">
           <Skeleton className="h-5 w-14 rounded-full" />
           <Skeleton className="h-5 w-20 rounded-full" />
@@ -328,9 +331,9 @@ function StreamingJdPanel({
       ) : (
         <div className="flex flex-wrap gap-1.5">
           {jd?.seniority && <Badge variant="outline">{jd.seniority}</Badge>}
-          {jd?.skills?.map((s) => (
-            <Badge key={s} variant="secondary">
-              {s}
+          {jd?.keywords?.map((kw) => (
+            <Badge key={kw} variant="secondary">
+              {kw}
             </Badge>
           ))}
         </div>
@@ -391,12 +394,14 @@ function QuestionsPanel({
   streamDone,
   error,
   jobId,
+  onRetry,
 }: {
   questions: StreamingQuestions | undefined;
   isStreaming: boolean;
   streamDone: boolean;
   error: Error | null;
   jobId: string;
+  onRetry: () => void;
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -468,7 +473,15 @@ function QuestionsPanel({
       {/* Scrollable questions */}
       <ScrollArea className="min-h-0 flex-1">
         <div className="flex flex-col gap-5 p-5">
-          {error && <p className="text-destructive text-sm">{error.message}</p>}
+          {error && (
+            <div className="flex flex-col items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+              <p className="text-destructive text-sm">{error.message}</p>
+              <Button onClick={onRetry} size="sm" variant="outline">
+                <RefreshCwIcon className="mr-1.5 size-3.5" />
+                Retry Extraction
+              </Button>
+            </div>
+          )}
 
           {questionList.map((q, i) => (
             <QuestionBlock

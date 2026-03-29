@@ -1,70 +1,68 @@
 import { Context, Effect, Layer } from "effect";
 import type {
-  EmbeddingError,
-  LlmError,
+  JobDescriptionNotFoundError,
   TalentNotFoundError,
   VectorSearchError,
 } from "../domain/errors";
-import type { JobDescriptionId, OrganizationId } from "../domain/models/ids";
+import type { JobDescriptionId, TalentId } from "../domain/models/ids";
 import type { Match } from "../domain/models/match";
-import { filterByHardConstraints, scoreTalents } from "../domain/scoring";
-import { EmbeddingPort } from "../ports/embedding-port";
-import { LlmPort } from "../ports/llm-port";
+import { scoreJobs, scoreTalents } from "../domain/scoring";
+import { JobDescriptionRepository } from "../ports/job-description-repository";
 import { RecruiterRepository } from "../ports/recruiter-repository";
 import { TalentRepository } from "../ports/talent-repository";
 import { VectorSearchPort } from "../ports/vector-search-port";
 
-const VECTOR_SEARCH_TOP_K = 20;
+const VECTOR_SEARCH_TOP_K = 50;
 const MAX_RESULTS = 10;
-const FETCH_CONCURRENCY = 10;
 
 type RankingError =
-  | LlmError
-  | EmbeddingError
   | VectorSearchError
-  | TalentNotFoundError;
+  | TalentNotFoundError
+  | JobDescriptionNotFoundError;
 
 export class RankingService extends Context.Tag("@recruit/RankingService")<
   RankingService,
   {
-    readonly rankTalents: (
-      rawJd: string,
-      organizationId: OrganizationId
+    readonly rankTalentsByJob: (
+      jobId: JobDescriptionId
+    ) => Effect.Effect<readonly Match[], RankingError>;
+    readonly rankJobsByTalent: (
+      talentId: TalentId
     ) => Effect.Effect<readonly Match[], RankingError>;
   }
 >() {
   static readonly layer = Layer.effect(
     RankingService,
     Effect.gen(function* () {
-      const llm = yield* LlmPort;
-      const embedding = yield* EmbeddingPort;
       const vectorSearch = yield* VectorSearchPort;
-      const talents = yield* TalentRepository;
+      const jdRepo = yield* JobDescriptionRepository;
+      const talentRepo = yield* TalentRepository;
       const recruiters = yield* RecruiterRepository;
 
       return RankingService.of({
-        rankTalents: (rawJd: string, organizationId: OrganizationId) =>
+        rankTalentsByJob: (jobId) =>
           Effect.gen(function* () {
-            const id = crypto.randomUUID() as JobDescriptionId;
-            const structured = yield* llm.structureJd({
-              raw: rawJd,
-              id,
-              organizationId,
-            });
-            const vector = yield* embedding.embed(structured.summary);
-            const candidates = yield* vectorSearch.search(
-              vector,
-              VECTOR_SEARCH_TOP_K
+            const jd = yield* jdRepo.findById(jobId);
+
+            const candidates = yield* vectorSearch.searchTalentsByJobId(
+              jobId,
+              VECTOR_SEARCH_TOP_K,
+              {
+                workModes: [jd.workMode],
+                location: jd.workMode !== "remote" ? jd.location : undefined,
+                willingToRelocate: jd.willingToSponsorRelocation || undefined,
+              }
             );
 
-            const fullTalents = yield* Effect.forEach(
-              candidates,
-              (c) => talents.findById(c.talentId),
-              { concurrency: FETCH_CONCURRENCY }
+            if (candidates.length === 0) {
+              return [];
+            }
+
+            const fullTalents = yield* talentRepo.findByIds(
+              candidates.map((c) => c.id as TalentId)
             );
 
-            const eligible = filterByHardConstraints(structured, fullTalents);
-            const scored = scoreTalents(structured, eligible, candidates);
+            const scored = scoreTalents(jd, fullTalents, candidates);
             const topTalents = scored.slice(0, MAX_RESULTS);
 
             yield* recruiters.findByTalentIds(
@@ -74,12 +72,49 @@ export class RankingService extends Context.Tag("@recruit/RankingService")<
             return topTalents.map(
               (t) =>
                 ({
-                  id: `${structured.id}-${t.talent.id}`,
-                  jobDescriptionId: structured.id,
+                  id: `${jd.id}-${t.talent.id}`,
+                  jobDescriptionId: jd.id,
                   talentId: t.talent.id,
                   recruiterId: t.talent.recruiterId,
                   totalScore: t.totalScore,
                   breakdown: t.breakdown,
+                  talentName: t.talent.name,
+                  jobTitle: jd.roleTitle,
+                }) as unknown as Match
+            );
+          }),
+
+        rankJobsByTalent: (talentId) =>
+          Effect.gen(function* () {
+            const talent = yield* talentRepo.findById(talentId);
+
+            const candidates = yield* vectorSearch.searchJobsByTalentId(
+              talentId,
+              VECTOR_SEARCH_TOP_K
+            );
+
+            if (candidates.length === 0) {
+              return [];
+            }
+
+            const fullJds = yield* jdRepo.findByIds(
+              candidates.map((c) => c.id as JobDescriptionId)
+            );
+
+            const scored = scoreJobs(talent, fullJds, candidates);
+            const topJobs = scored.slice(0, MAX_RESULTS);
+
+            return topJobs.map(
+              (s) =>
+                ({
+                  id: `${s.jd.id}-${talent.id}`,
+                  jobDescriptionId: s.jd.id,
+                  talentId: talent.id,
+                  recruiterId: talent.recruiterId,
+                  totalScore: s.totalScore,
+                  breakdown: s.breakdown,
+                  talentName: talent.name,
+                  jobTitle: s.jd.roleTitle,
                 }) as unknown as Match
             );
           }),

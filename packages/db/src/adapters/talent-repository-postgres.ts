@@ -1,7 +1,7 @@
 import { TalentNotFoundError } from "@workspace/core/domain/errors";
 import { Talent } from "@workspace/core/domain/models/talent";
 import { TalentRepository } from "@workspace/core/ports/talent-repository";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { Effect, Layer, Schema } from "effect";
 import { DrizzleClient } from "../client";
 import { talents } from "../schema/talents";
@@ -30,7 +30,6 @@ const toInput = (row: TalentRow): TalentInput => ({
   id: row.id,
   name: row.name,
   title: row.title,
-  skills: row.skills,
   keywords: row.keywords,
   experienceYears: row.experienceYears,
   location: row.location,
@@ -52,13 +51,12 @@ export const TalentRepositoryPostgresLayer = Layer.effect(
     const db = yield* DrizzleClient;
 
     return TalentRepository.of({
-      create: (talent, embedding) =>
+      create: (talent) =>
         Effect.gen(function* () {
           const values: typeof talents.$inferInsert = {
             id: talent.id,
             name: talent.name,
             title: talent.title,
-            skills: [...talent.skills],
             keywords: [...talent.keywords],
             experienceYears: talent.experienceYears,
             location: talent.location,
@@ -69,7 +67,6 @@ export const TalentRepositoryPostgresLayer = Layer.effect(
             recruiterId: talent.recruiterId,
             status: talent.status,
             createdAt: talent.createdAt,
-            embedding: embedding ? [...embedding] : null,
           };
           yield* Effect.promise(() => db.insert(talents).values(values));
           return talent;
@@ -87,18 +84,32 @@ export const TalentRepositoryPostgresLayer = Layer.effect(
           return toDomain(row);
         }),
 
+      findByIds: (ids) =>
+        Effect.gen(function* () {
+          if (ids.length === 0) {
+            return [];
+          }
+          const rows = yield* Effect.promise(() =>
+            db
+              .select()
+              .from(talents)
+              .where(inArray(talents.id, [...ids]))
+          );
+          return rows.map(toDomain);
+        }),
+
       findAll: () =>
         Effect.gen(function* () {
           const rows = yield* Effect.promise(() => db.select().from(talents));
           return rows.map(toDomain);
         }),
 
-      updateSkills: (id, skills) =>
+      updateKeywords: (id, keywords) =>
         Effect.gen(function* () {
           const result = yield* Effect.promise(() =>
             db
               .update(talents)
-              .set({ skills: [...skills] })
+              .set({ keywords: [...keywords] })
               .where(eq(talents.id, id))
               .returning({ id: talents.id })
           );
@@ -121,14 +132,11 @@ export const TalentRepositoryPostgresLayer = Layer.effect(
           }
         }),
 
-      update: (id, data, embedding) =>
+      update: (id, data) =>
         Effect.gen(function* () {
           const setData: Record<string, unknown> = {};
           for (const [key, value] of Object.entries(data)) {
             setData[key] = Array.isArray(value) ? [...value] : value;
-          }
-          if (embedding) {
-            setData.embedding = [...embedding];
           }
           const result = yield* Effect.promise(() =>
             db

@@ -16,7 +16,6 @@ export class Talent extends Schema.Class<Talent>("Talent")({
   id: TalentId,
   name: Schema.String,
   title: Schema.String,
-  skills: Schema.Array(Schema.String),
   keywords: Schema.Array(Schema.String),
   experienceYears: Schema.Number,
   location: Schema.String,

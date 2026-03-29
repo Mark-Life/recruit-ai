@@ -49,18 +49,11 @@ describe.skipIf(!process.env.GOOGLE_GENERATIVE_AI_API_KEY)(
           expect(result.extraction.name.length).toBeGreaterThan(0);
           expect(result.extraction.title.length).toBeGreaterThan(0);
 
-          // Extraction: should have skills
-          expect(result.extraction.skills.length).toBeGreaterThan(0);
+          // Extraction: should have keywords
+          expect(result.extraction.keywords.length).toBeGreaterThan(0);
 
           // Extraction: experience years should be a positive number
           expect(result.extraction.experienceYears).toBeGreaterThan(0);
-
-          // Keywords: non-empty and relevant
-          expect(result.keywords.length).toBeGreaterThan(0);
-          for (const kw of result.keywords) {
-            expect(typeof kw).toBe("string");
-            expect(kw.length).toBeGreaterThan(0);
-          }
 
           // Embedding: correct dimensions
           expect(result.embedding.length).toBe(EMBEDDING_DIMENSIONS);
@@ -70,14 +63,13 @@ describe.skipIf(!process.env.GOOGLE_GENERATIVE_AI_API_KEY)(
           console.log("\n--- PDF Ingestion Result ---");
           console.log("Name:", result.extraction.name);
           console.log("Title:", result.extraction.title);
-          console.log("Skills:", result.extraction.skills.join(", "));
+          console.log("Keywords:", result.extraction.keywords.join(", "));
           console.log(
             "Experience:",
             result.extraction.experienceYears,
             "years"
           );
           console.log("Location:", result.extraction.location);
-          console.log("Keywords:", result.keywords.join(", "));
           console.log("Embedding dims:", result.embedding.length);
         }).pipe(Effect.provide(TestLayer)),
       { timeout: EVAL_TIMEOUT }

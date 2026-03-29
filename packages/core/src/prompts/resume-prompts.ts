@@ -1,6 +1,6 @@
 const resumeExtractionRules = `
 <extraction-rules>
-- Normalize skill and technology names to their canonical forms (e.g. "React.js", "ReactJS" → "React")
+- Extract unified keywords covering both technology skills and domain terms, normalized to canonical forms (e.g. "React.js", "ReactJS" → "React")
 - Calculate total professional experience from the career history
 - For work modes, extract any mentioned preferences; if not mentioned, default to all three modes (office, hybrid, remote)
 - For location, extract the candidate's current city/country; use "Unknown" if not mentioned

@@ -1,1 +1,0 @@
-ALTER TABLE "job_descriptions" ADD COLUMN "questions" jsonb DEFAULT '[]' NOT NULL;

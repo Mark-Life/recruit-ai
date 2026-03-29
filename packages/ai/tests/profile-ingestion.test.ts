@@ -17,8 +17,7 @@ const TALENT = Talent.make({
   id: TalentId.make("ingest-t-1"),
   name: "Alice Chen",
   title: "Senior Frontend Engineer",
-  skills: ["React", "TypeScript", "Next.js", "CSS", "HTML"],
-  keywords: [],
+  keywords: ["React", "TypeScript", "Next.js", "CSS", "HTML"],
   experienceYears: 6,
   location: "San Francisco",
   workModes: ["remote", "hybrid"],
@@ -56,32 +55,12 @@ describe.skipIf(!process.env.GOOGLE_GENERATIVE_AI_API_KEY)(
           expect(result.talent.id).toBe(TALENT.id);
           expect(result.talent.name).toBe(TALENT.name);
 
-          // Keywords: non-empty array of strings
-          expect(result.keywords.length).toBeGreaterThan(0);
-          for (const kw of result.keywords) {
-            expect(typeof kw).toBe("string");
-            expect(kw.length).toBeGreaterThan(0);
-          }
-
-          // At least one keyword relates to the talent's skills or title
-          const lowerKeywords = result.keywords.map((k) => k.toLowerCase());
-          const relevantTerms = [
-            ...TALENT.skills.map((s) => s.toLowerCase()),
-            "frontend",
-            "engineer",
-          ];
-          const hasRelevantKeyword = lowerKeywords.some((kw) =>
-            relevantTerms.some((term) => kw.includes(term) || term.includes(kw))
-          );
-          expect(hasRelevantKeyword).toBe(true);
-
           // Embedding: numeric array with expected dimensions
           expect(result.embedding.length).toBe(EMBEDDING_DIMENSIONS);
           expect(typeof result.embedding[0]).toBe("number");
           expect(Number.isFinite(result.embedding[0])).toBe(true);
 
           console.log("\n--- Enriched Profile ---");
-          console.log("Keywords:", result.keywords.join(", "));
           console.log("Embedding dims:", result.embedding.length);
         }).pipe(Effect.provide(TestLayer)),
       { timeout: EVAL_TIMEOUT }

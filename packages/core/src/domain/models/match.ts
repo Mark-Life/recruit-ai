@@ -17,4 +17,6 @@ export class Match extends Schema.Class<Match>("Match")({
   recruiterId: RecruiterId,
   totalScore: Schema.Number,
   breakdown: ScoreBreakdown,
+  talentName: Schema.optionalWith(Schema.String, { nullable: true }),
+  jobTitle: Schema.optionalWith(Schema.String, { nullable: true }),
 }) {}

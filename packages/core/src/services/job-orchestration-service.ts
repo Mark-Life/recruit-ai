@@ -13,10 +13,11 @@ import type { JobDescriptionId, OrganizationId } from "../domain/models/ids";
 import type { JdExtraction } from "../domain/models/jd-extraction";
 import type { StructuredJd } from "../domain/models/job-description";
 import type { Match } from "../domain/models/match";
+import { EmbeddingPort } from "../ports/embedding-port";
 import { JobDescriptionRepository } from "../ports/job-description-repository";
 import type { DeepPartial } from "../ports/llm-port";
 import { LlmPort } from "../ports/llm-port";
-import { MatchRepository } from "../ports/match-repository";
+import { VectorSearchPort } from "../ports/vector-search-port";
 import { RankingService } from "./ranking-service";
 
 export interface CreateJobStreamOutput {
@@ -24,11 +25,13 @@ export interface CreateJobStreamOutput {
   readonly questions?: DeepPartial<ClarifyingQuestionsExtractionOutput>;
 }
 
-type SubmitAnswersError = LlmError | JobDescriptionNotFoundError;
-
-type MatchingError =
+type SubmitAnswersError =
   | LlmError
   | EmbeddingError
+  | VectorSearchError
+  | JobDescriptionNotFoundError;
+
+type MatchingError =
   | VectorSearchError
   | TalentNotFoundError
   | JobDescriptionNotFoundError;
@@ -73,8 +76,9 @@ export class JobOrchestrationService extends Context.Tag(
     Effect.gen(function* () {
       const llm = yield* LlmPort;
       const jdRepo = yield* JobDescriptionRepository;
-      const matchRepo = yield* MatchRepository;
       const ranking = yield* RankingService;
+      const embeddingPort = yield* EmbeddingPort;
+      const vectorSearch = yield* VectorSearchPort;
 
       return JobOrchestrationService.of({
         createDraft: (params) =>
@@ -84,7 +88,6 @@ export class JobOrchestrationService extends Context.Tag(
             rawText: params.rawText,
             roleTitle: params.title,
             summary: "",
-            skills: [],
             keywords: [],
             seniority: "mid",
             employmentType: "full-time",
@@ -216,10 +219,27 @@ export class JobOrchestrationService extends Context.Tag(
 
               const persistPhase = Stream.fromEffect(
                 Effect.gen(function* () {
-                  const finalExtraction = yield* Ref.get(jdRef);
+                  const finalExtraction = (yield* Ref.get(
+                    jdRef
+                  )) as JdExtraction;
+
                   yield* jdRepo.update(id, {
-                    ...(finalExtraction as JdExtraction),
+                    ...finalExtraction,
                     rawText: enrichedText,
+                    status: "ready",
+                  });
+
+                  const embedding = yield* embeddingPort.embed(
+                    finalExtraction.summary
+                  );
+                  yield* vectorSearch.upsertJob(id, embedding, {
+                    keywords: [...finalExtraction.keywords],
+                    workMode: finalExtraction.workMode,
+                    location: finalExtraction.location,
+                    willingToSponsorRelocation:
+                      finalExtraction.willingToSponsorRelocation,
+                    experienceYearsMin: finalExtraction.experienceYearsMin,
+                    experienceYearsMax: finalExtraction.experienceYearsMax,
                     status: "ready",
                   });
                 })
@@ -229,16 +249,7 @@ export class JobOrchestrationService extends Context.Tag(
             })
           ),
 
-        runMatching: (id) =>
-          Effect.gen(function* () {
-            const jd = yield* jdRepo.findById(id);
-            const matches = yield* ranking.rankTalents(
-              jd.rawText,
-              jd.organizationId
-            );
-            yield* matchRepo.createMany(matches);
-            return matches;
-          }),
+        runMatching: (id) => ranking.rankTalentsByJob(id),
       });
     })
   );

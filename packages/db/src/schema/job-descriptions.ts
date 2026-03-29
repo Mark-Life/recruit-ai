@@ -9,7 +9,6 @@ export const jobDescriptions = pgTable("job_descriptions", {
   rawText: text("raw_text").notNull(),
   summary: text("summary").notNull(),
   roleTitle: text("role_title").notNull(),
-  skills: text("skills").array().notNull(),
   keywords: text("keywords").array().notNull(),
   seniority: text("seniority").notNull(),
   employmentType: text("employment_type").notNull(),

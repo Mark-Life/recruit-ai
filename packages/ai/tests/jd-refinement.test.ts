@@ -109,7 +109,7 @@ describe.skipIf(!process.env.GOOGLE_GENERATIVE_AI_API_KEY)(
           console.log("Work Mode:", structured.workMode);
           console.log("Location:", structured.location);
           console.log("Seniority:", structured.seniority);
-          console.log("Skills:", structured.skills.join(", "));
+          console.log("Keywords:", structured.keywords.join(", "));
 
           // The enriched JD should reflect the provided answers
           expect(structured.workMode).toBe("hybrid");

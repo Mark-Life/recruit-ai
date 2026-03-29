@@ -2,14 +2,7 @@
 
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card";
 import { Input } from "@workspace/ui/components/input";
-import { Progress } from "@workspace/ui/components/progress";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import {
   ArrowRightIcon,
@@ -27,8 +20,9 @@ import { useRouter } from "next/navigation";
 import { Suspense, use, useState } from "react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { PageHeader } from "@/components/page-header";
-import type { Match, ScoreBreakdown, Talent } from "@/lib/api";
-import { useConfirmSkills, useMatchesForTalent, useTalent } from "@/lib/api";
+import type { Talent } from "@/lib/api";
+import { useConfirmKeywords, useMatchesForTalent, useTalent } from "@/lib/api";
+import { JobMatchCard } from "../job-match-card";
 import { ResumeTextPanel } from "../resume-text-panel";
 import { TalentPipelineSteps } from "../talent-pipeline-steps";
 
@@ -99,13 +93,12 @@ function RightPanel({ talent }: { talent: Talent }) {
 }
 
 // ---------------------------------------------------------------------------
-// Extracted profile summary — shared across reviewing/matched panels
+// Profile meta (name, title, location, experience)
 // ---------------------------------------------------------------------------
 
-function ExtractedProfileSection({ talent }: { talent: Talent }) {
+function ProfileMeta({ talent }: { talent: Talent }) {
   return (
     <div className="flex flex-col gap-4">
-      {/* Name + Title */}
       <div className="flex flex-col gap-1">
         <h2 className="font-semibold text-lg leading-tight">{talent.name}</h2>
         {talent.title && (
@@ -113,7 +106,6 @@ function ExtractedProfileSection({ talent }: { talent: Talent }) {
         )}
       </div>
 
-      {/* Meta tags */}
       <div className="flex flex-wrap items-center gap-2 text-sm">
         {talent.location && (
           <span className="inline-flex items-center gap-1 text-muted-foreground">
@@ -134,22 +126,6 @@ function ExtractedProfileSection({ talent }: { talent: Talent }) {
           </span>
         )}
       </div>
-
-      {/* Keywords */}
-      {talent.keywords.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <span className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
-            Keywords
-          </span>
-          <div className="flex flex-wrap gap-1.5">
-            {talent.keywords.map((kw) => (
-              <Badge key={kw} variant="outline">
-                {kw}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -193,9 +169,9 @@ function ExtractingPanel() {
       </div>
 
       <div className="flex flex-col items-center gap-2 text-center">
-        <h3 className="font-semibold text-base">Extracting Skills</h3>
+        <h3 className="font-semibold text-base">Extracting Keywords</h3>
         <p className="max-w-xs text-muted-foreground text-sm">
-          Analyzing the resume to extract skills, experience, and key
+          Analyzing the resume to extract keywords, experience, and key
           qualifications.
         </p>
       </div>
@@ -203,7 +179,7 @@ function ExtractingPanel() {
       <div className="flex flex-col gap-3 pt-2">
         <AnalysisStep done label="Parsing resume text" />
         <AnalysisStep done label="Identifying experience sections" />
-        <AnalysisStep active label="Extracting hard skills" />
+        <AnalysisStep active label="Extracting keywords" />
         <AnalysisStep label="Generating talent profile" />
       </div>
     </div>
@@ -263,31 +239,31 @@ function AnalysisStep({
 
 function ReviewingPanel({ talent }: { talent: Talent }) {
   const router = useRouter();
-  const [skills, setSkills] = useState<readonly string[]>(talent.skills);
-  const [newSkill, setNewSkill] = useState("");
-  const confirmSkills = useConfirmSkills(talent.id);
+  const [keywords, setKeywords] = useState<readonly string[]>(talent.keywords);
+  const [newKeyword, setNewKeyword] = useState("");
+  const confirmKeywords = useConfirmKeywords(talent.id);
 
-  function handleRemoveSkill(skill: string) {
-    setSkills((prev) => prev.filter((s) => s !== skill));
+  function handleRemoveKeyword(keyword: string) {
+    setKeywords((prev) => prev.filter((k) => k !== keyword));
   }
 
-  function handleAddSkill() {
-    const trimmed = newSkill.trim();
-    if (trimmed && !skills.includes(trimmed)) {
-      setSkills((prev) => [...prev, trimmed]);
-      setNewSkill("");
+  function handleAddKeyword() {
+    const trimmed = newKeyword.trim();
+    if (trimmed && !keywords.includes(trimmed)) {
+      setKeywords((prev) => [...prev, trimmed]);
+      setNewKeyword("");
     }
   }
 
   function handleKeyDown(e: { key: string; preventDefault: () => void }) {
     if (e.key === "Enter") {
       e.preventDefault();
-      handleAddSkill();
+      handleAddKeyword();
     }
   }
 
   function handleConfirm() {
-    confirmSkills.mutate([...skills], {
+    confirmKeywords.mutate([...keywords], {
       onSuccess: () => {
         router.push(`/talents/${talent.id}`);
       },
@@ -301,37 +277,37 @@ function ReviewingPanel({ talent }: { talent: Talent }) {
         <div className="flex flex-col gap-1">
           <h3 className="font-semibold text-base">Extracted Profile</h3>
           <p className="text-muted-foreground text-sm">
-            Review the extracted profile and adjust skills before matching.
+            Review the extracted profile and adjust keywords before matching.
           </p>
         </div>
         <Badge variant="outline">
           <PencilIcon className="mr-1 size-3" />
-          {skills.length} skills
+          {keywords.length} keywords
         </Badge>
       </div>
 
       {/* Scrollable content */}
       <ScrollArea className="min-h-0 flex-1">
         <div className="flex flex-col gap-5 p-5">
-          <ExtractedProfileSection talent={talent} />
+          <ProfileMeta talent={talent} />
 
-          {/* Editable skills */}
+          {/* Editable keywords */}
           <div className="flex flex-col gap-3">
             <span className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
-              Skills
+              Keywords
             </span>
             <div className="flex flex-wrap gap-2">
-              {skills.map((skill) => (
+              {keywords.map((keyword) => (
                 <Badge
                   className="gap-1.5 pr-1.5"
-                  key={skill}
+                  key={keyword}
                   variant="secondary"
                 >
-                  {skill}
+                  {keyword}
                   <button
-                    aria-label={`Remove ${skill}`}
+                    aria-label={`Remove ${keyword}`}
                     className="rounded-full p-0.5 hover:bg-muted-foreground/20"
-                    onClick={() => handleRemoveSkill(skill)}
+                    onClick={() => handleRemoveKeyword(keyword)}
                     type="button"
                   >
                     <XIcon className="size-3" />
@@ -341,21 +317,21 @@ function ReviewingPanel({ talent }: { talent: Talent }) {
             </div>
           </div>
 
-          {/* Add new skill */}
+          {/* Add new keyword */}
           <div className="flex flex-col gap-2">
             <span className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
-              Add Skill
+              Add Keyword
             </span>
             <div className="flex gap-2">
               <Input
-                onChange={(e) => setNewSkill(e.target.value)}
+                onChange={(e) => setNewKeyword(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Type a skill and press Enter..."
-                value={newSkill}
+                placeholder="Type a keyword and press Enter..."
+                value={newKeyword}
               />
               <Button
-                disabled={!newSkill.trim()}
-                onClick={handleAddSkill}
+                disabled={!newKeyword.trim()}
+                onClick={handleAddKeyword}
                 size="sm"
                 variant="outline"
               >
@@ -365,8 +341,11 @@ function ReviewingPanel({ talent }: { talent: Talent }) {
           </div>
 
           <div className="flex justify-end pt-2">
-            <Button disabled={confirmSkills.isPending} onClick={handleConfirm}>
-              {confirmSkills.isPending ? (
+            <Button
+              disabled={confirmKeywords.isPending}
+              onClick={handleConfirm}
+            >
+              {confirmKeywords.isPending ? (
                 "Matching..."
               ) : (
                 <>
@@ -413,18 +392,17 @@ function MatchedPanelContent({ talent }: { talent: Talent }) {
       {/* Scrollable list */}
       <ScrollArea className="min-h-0 flex-1">
         <div className="flex flex-col gap-5 p-5">
-          <ExtractedProfileSection talent={talent} />
+          <ProfileMeta talent={talent} />
 
-          {/* Skills (read-only) */}
-          {talent.skills.length > 0 && (
+          {talent.keywords.length > 0 && (
             <div className="flex flex-col gap-2">
               <span className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
-                Skills
+                Keywords
               </span>
               <div className="flex flex-wrap gap-1.5">
-                {talent.skills.map((s) => (
-                  <Badge key={s} variant="secondary">
-                    {s}
+                {talent.keywords.map((kw) => (
+                  <Badge key={kw} variant="outline">
+                    {kw}
                   </Badge>
                 ))}
               </div>
@@ -436,7 +414,7 @@ function MatchedPanelContent({ talent }: { talent: Talent }) {
             <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
               <p className="text-sm">No matching jobs found.</p>
               <p className="text-xs">
-                Try adding more skills or check back when new positions are
+                Try adding more keywords or check back when new positions are
                 posted.
               </p>
             </div>
@@ -450,74 +428,5 @@ function MatchedPanelContent({ talent }: { talent: Talent }) {
         </div>
       </ScrollArea>
     </>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Job match card
-// ---------------------------------------------------------------------------
-
-const PERCENT = 100;
-const ID_PREVIEW_LENGTH = 8;
-
-function JobMatchCard({ match, rank }: { match: Match; rank: number }) {
-  const { breakdown, totalScore } = match;
-  const pct = Math.round(totalScore * PERCENT);
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-3">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted font-mono font-semibold text-xs">
-            {rank}
-          </span>
-          <span>Job #{match.jobDescriptionId.slice(0, ID_PREVIEW_LENGTH)}</span>
-        </CardTitle>
-      </CardHeader>
-
-      <CardContent>
-        <div className="flex flex-col gap-4">
-          {/* Total score */}
-          <div className="flex items-center gap-3">
-            <Progress className="h-2 flex-1" value={pct} />
-            <span className="font-mono font-semibold text-sm tabular-nums">
-              {pct}%
-            </span>
-          </div>
-
-          {/* Score breakdown */}
-          <ScoreBreakdownGrid breakdown={breakdown} />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-const SCORE_LABELS: Record<keyof ScoreBreakdown, string> = {
-  semanticSimilarity: "Semantic",
-  keywordOverlap: "Keywords",
-  experienceFit: "Experience",
-  constraintFit: "Constraints",
-};
-
-function ScoreBreakdownGrid({ breakdown }: { breakdown: ScoreBreakdown }) {
-  return (
-    <div className="grid grid-cols-4 gap-3 rounded-lg border bg-muted/30 p-3">
-      {(Object.entries(SCORE_LABELS) as [keyof ScoreBreakdown, string][]).map(
-        ([key, label]) => {
-          const value = breakdown[key];
-          return (
-            <div className="flex flex-col items-center gap-1" key={key}>
-              <span className="font-mono font-semibold text-sm tabular-nums">
-                {value.toFixed(2)}
-              </span>
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                {label}
-              </span>
-            </div>
-          );
-        }
-      )}
-    </div>
   );
 }

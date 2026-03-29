@@ -65,8 +65,8 @@ const CreateDraftTalentPayload = Schema.Struct({
   recruiterId: Schema.String,
 });
 
-const ConfirmSkillsPayload = Schema.Struct({
-  skills: Schema.Array(Schema.String),
+const ConfirmKeywordsPayload = Schema.Struct({
+  keywords: Schema.Array(Schema.String),
 });
 
 export class TalentsGroup extends HttpApiGroup.make("talents")
@@ -78,9 +78,9 @@ export class TalentsGroup extends HttpApiGroup.make("talents")
       .addError(Schema.String, { status: 404 })
   )
   .add(
-    HttpApiEndpoint.put("confirmSkills", "/:id/skills")
+    HttpApiEndpoint.put("confirmKeywords", "/:id/keywords")
       .setPath(TalentIdPath)
-      .setPayload(ConfirmSkillsPayload)
+      .setPayload(ConfirmKeywordsPayload)
       .addSuccess(Talent)
       .addError(Schema.String, { status: 404 })
   )

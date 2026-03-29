@@ -8,17 +8,13 @@ import { LlmPort } from "../ports/llm-port";
 
 export interface EnrichedProfile {
   readonly embedding: Vector;
-  readonly keywords: readonly string[];
   readonly talent: Talent;
 }
 
 export interface IngestedPdfProfile {
   readonly embedding: Vector;
   readonly extraction: ResumeExtraction;
-  readonly keywords: readonly string[];
 }
-
-const CONCURRENCY = 2;
 
 export class ProfileIngestionService extends Context.Tag(
   "@recruit/ProfileIngestionService"
@@ -27,7 +23,7 @@ export class ProfileIngestionService extends Context.Tag(
   {
     readonly enrich: (
       talent: Talent
-    ) => Effect.Effect<EnrichedProfile, LlmError | EmbeddingError>;
+    ) => Effect.Effect<EnrichedProfile, EmbeddingError>;
     readonly ingestFromPdf: (
       pdf: Uint8Array
     ) => Effect.Effect<IngestedPdfProfile, LlmError | EmbeddingError>;
@@ -39,10 +35,15 @@ export class ProfileIngestionService extends Context.Tag(
       const llm = yield* LlmPort;
       const embedding = yield* EmbeddingPort;
 
-      const buildProfileText = (e: ResumeExtraction) =>
+      const buildProfileText = (e: {
+        title: string;
+        keywords: readonly string[];
+        experienceYears: number;
+        location: string;
+      }) =>
         [
           e.title,
-          `Skills: ${e.skills.join(", ")}`,
+          `Keywords: ${e.keywords.join(", ")}`,
           `Experience: ${e.experienceYears} years`,
           `Location: ${e.location}`,
         ].join(". ");
@@ -51,32 +52,16 @@ export class ProfileIngestionService extends Context.Tag(
         enrich: (talent) =>
           Effect.gen(function* () {
             const profileText = buildProfileText(talent);
-
-            const [keywords, vector] = yield* Effect.all(
-              [
-                llm.extractKeywords(profileText),
-                embedding.embed(profileText),
-              ] as const,
-              { concurrency: CONCURRENCY }
-            );
-
-            return { talent, keywords, embedding: vector };
+            const vector = yield* embedding.embed(profileText);
+            return { talent, embedding: vector };
           }),
 
         ingestFromPdf: (pdf) =>
           Effect.gen(function* () {
             const extraction = yield* llm.structureResumePdf(pdf);
             const profileText = buildProfileText(extraction);
-
-            const [keywords, vector] = yield* Effect.all(
-              [
-                llm.extractKeywords(profileText),
-                embedding.embed(profileText),
-              ] as const,
-              { concurrency: CONCURRENCY }
-            );
-
-            return { extraction, keywords, embedding: vector };
+            const vector = yield* embedding.embed(profileText);
+            return { extraction, embedding: vector };
           }),
       });
     })

@@ -101,7 +101,6 @@ describe.skipIf(!process.env.GOOGLE_GENERATIVE_AI_API_KEY)(
 
           console.log("\n--- Structured JD ---");
           console.log("Role:", structuredJd.roleTitle);
-          console.log("Skills:", structuredJd.skills.join(", "));
           console.log("Keywords:", structuredJd.keywords.join(", "));
           console.log("Seniority:", structuredJd.seniority);
           console.log("Work Mode:", structuredJd.workMode);
@@ -127,7 +126,7 @@ describe.skipIf(!process.env.GOOGLE_GENERATIVE_AI_API_KEY)(
             ["C (vet)", resumeC],
           ] as const) {
             console.log(
-              `${label}: ${r.title} | ${r.experienceYears}y | skills: ${r.skills.join(", ")}`
+              `${label}: ${r.title} | ${r.experienceYears}y | keywords: ${r.keywords.join(", ")}`
             );
           }
 
@@ -144,7 +143,6 @@ describe.skipIf(!process.env.GOOGLE_GENERATIVE_AI_API_KEY)(
               id: TalentId.make(id),
               name: resume.name,
               title: resume.title,
-              skills: resume.skills as readonly string[],
               keywords: resume.keywords as readonly string[],
               experienceYears: resume.experienceYears,
               location: resume.location,
@@ -174,15 +172,15 @@ describe.skipIf(!process.env.GOOGLE_GENERATIVE_AI_API_KEY)(
           // Step 5: Compute cosine similarity → VectorCandidate[]
           const candidates = [
             {
-              talentId: talents[0]!.id,
+              id: talents[0]!.id,
               similarity: cosineSimilarity(jdVec, vecA),
             },
             {
-              talentId: talents[1]!.id,
+              id: talents[1]!.id,
               similarity: cosineSimilarity(jdVec, vecB),
             },
             {
-              talentId: talents[2]!.id,
+              id: talents[2]!.id,
               similarity: cosineSimilarity(jdVec, vecC),
             },
           ];
