@@ -1,5 +1,4 @@
 import { Badge } from "@workspace/ui/components/badge";
-import { Separator } from "@workspace/ui/components/separator";
 import {
   BriefcaseIcon,
   ClockIcon,
@@ -46,7 +45,15 @@ export function JdTextPanel({ job }: { job: Job }) {
         ))}
       </div>
 
-      <Separator />
+      {/* AI Summary */}
+      {job.summary && (
+        <div className="flex flex-col gap-2 rounded-lg border bg-muted/30 p-3">
+          <span className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
+            AI Summary
+          </span>
+          <p className="text-sm leading-relaxed">{job.summary}</p>
+        </div>
+      )}
 
       {/* Raw JD text */}
       <div className="flex flex-col gap-2">
@@ -57,16 +64,6 @@ export function JdTextPanel({ job }: { job: Job }) {
           {job.rawText}
         </p>
       </div>
-
-      {/* Summary */}
-      {job.summary && (
-        <div className="flex flex-col gap-2 rounded-lg border bg-muted/30 p-3">
-          <span className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
-            AI Summary
-          </span>
-          <p className="text-sm leading-relaxed">{job.summary}</p>
-        </div>
-      )}
     </div>
   );
 }

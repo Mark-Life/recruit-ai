@@ -71,8 +71,9 @@ export function NewJobDialog() {
           New Job
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-lg">
         <form
+          className="flex min-h-0 flex-col"
           onSubmit={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -87,7 +88,7 @@ export function NewJobDialog() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex flex-col gap-4 py-4">
+          <div className="flex min-h-0 flex-col gap-4 overflow-y-auto py-4">
             <form.Field
               name="title"
               validators={{
@@ -142,7 +143,7 @@ export function NewJobDialog() {
             </form.Field>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="mt-2">
             <form.Subscribe
               selector={(state) => [state.canSubmit, state.isSubmitting]}
             >
