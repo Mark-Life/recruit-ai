@@ -3,8 +3,8 @@ import type { TalentNotFoundError } from "../domain/errors";
 import type { TalentId } from "../domain/models/ids";
 import type { Match } from "../domain/models/match";
 import type { Talent } from "../domain/models/talent";
-import { MatchRepository } from "../ports/match-repository";
 import { TalentRepository } from "../ports/talent-repository";
+import { RankingService } from "./ranking-service";
 
 /** Read-only queries for talents and their matches. */
 export class TalentQueryService extends Context.Tag(
@@ -23,12 +23,17 @@ export class TalentQueryService extends Context.Tag(
     TalentQueryService,
     Effect.gen(function* () {
       const talentRepo = yield* TalentRepository;
-      const matchRepo = yield* MatchRepository;
+      const ranking = yield* RankingService;
 
       return TalentQueryService.of({
         listTalents: () => talentRepo.findAll(),
         getTalent: (id) => talentRepo.findById(id),
-        getMatches: (id) => matchRepo.findByTalentId(id),
+        getMatches: (id) =>
+          ranking
+            .rankJobsByTalent(id)
+            .pipe(
+              Effect.catchAll(() => Effect.succeed([] as readonly Match[]))
+            ),
       });
     })
   );

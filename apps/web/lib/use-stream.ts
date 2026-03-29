@@ -117,7 +117,6 @@ interface CreateJobStreamOutput {
   jd?: Partial<{
     summary: string;
     roleTitle: string;
-    skills: readonly string[];
     keywords: readonly string[];
     seniority: string;
     employmentType: string;
@@ -156,7 +155,6 @@ interface SubmitAnswersStreamOutput {
   location?: string;
   roleTitle?: string;
   seniority?: string;
-  skills?: readonly string[];
   summary?: string;
   workMode?: string;
 }
@@ -182,7 +180,6 @@ interface ResumeExtractionOutput {
   keywords?: readonly string[];
   location?: string;
   name?: string;
-  skills?: readonly string[];
   title?: string;
   willingToRelocate?: boolean;
   workModes?: readonly string[];

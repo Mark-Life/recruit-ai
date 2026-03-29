@@ -6,17 +6,17 @@ import type { Talent, TalentStatus } from "../domain/models/talent";
 export class TalentRepository extends Context.Tag("@recruit/TalentRepository")<
   TalentRepository,
   {
-    readonly create: (
-      talent: Talent,
-      embedding?: readonly number[]
-    ) => Effect.Effect<Talent>;
+    readonly create: (talent: Talent) => Effect.Effect<Talent>;
     readonly findById: (
       id: TalentId
     ) => Effect.Effect<Talent, TalentNotFoundError>;
+    readonly findByIds: (
+      ids: readonly TalentId[]
+    ) => Effect.Effect<readonly Talent[]>;
     readonly findAll: () => Effect.Effect<readonly Talent[]>;
-    readonly updateSkills: (
+    readonly updateKeywords: (
       id: TalentId,
-      skills: readonly string[]
+      keywords: readonly string[]
     ) => Effect.Effect<void, TalentNotFoundError>;
     readonly updateStatus: (
       id: TalentId,
@@ -24,8 +24,7 @@ export class TalentRepository extends Context.Tag("@recruit/TalentRepository")<
     ) => Effect.Effect<void, TalentNotFoundError>;
     readonly update: (
       id: TalentId,
-      data: Partial<Omit<Talent, "id" | "recruiterId">>,
-      embedding?: readonly number[]
+      data: Partial<Omit<Talent, "id" | "recruiterId">>
     ) => Effect.Effect<Talent, TalentNotFoundError>;
   }
 >() {}

@@ -1,20 +1,14 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "b8c6f17d-9438-4a3f-98d1-985ae6846ecb",
+  "id": "4e945639-0f32-4a7a-a7c2-8243021affab",
   "prevIds": [
-    "e6e09cad-adb9-4548-84ca-175f9eac24cf"
+    "00000000-0000-0000-0000-000000000000"
   ],
   "ddl": [
     {
       "isRlsEnabled": false,
       "name": "job_descriptions",
-      "entityType": "tables",
-      "schema": "public"
-    },
-    {
-      "isRlsEnabled": false,
-      "name": "matches",
       "entityType": "tables",
       "schema": "public"
     },
@@ -97,19 +91,6 @@
       "generated": null,
       "identity": null,
       "name": "role_title",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "job_descriptions"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 1,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "skills",
       "entityType": "columns",
       "schema": "public",
       "table": "job_descriptions"
@@ -232,14 +213,14 @@
       "table": "job_descriptions"
     },
     {
-      "type": "text",
+      "type": "jsonb",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
-      "default": null,
+      "default": "'[]'",
       "generated": null,
       "identity": null,
-      "name": "created_at",
+      "name": "questions",
       "entityType": "columns",
       "schema": "public",
       "table": "job_descriptions"
@@ -252,114 +233,10 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "id",
+      "name": "created_at",
       "entityType": "columns",
       "schema": "public",
-      "table": "matches"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "job_description_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "matches"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "talent_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "matches"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "recruiter_id",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "matches"
-    },
-    {
-      "type": "real",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "total_score",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "matches"
-    },
-    {
-      "type": "real",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "semantic_similarity",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "matches"
-    },
-    {
-      "type": "real",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "keyword_overlap",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "matches"
-    },
-    {
-      "type": "real",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "experience_fit",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "matches"
-    },
-    {
-      "type": "real",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "constraint_fit",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "matches"
+      "table": "job_descriptions"
     },
     {
       "type": "text",
@@ -486,19 +363,6 @@
       "default": null,
       "generated": null,
       "identity": null,
-      "name": "skills",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "talents"
-    },
-    {
-      "type": "text",
-      "typeSchema": null,
-      "notNull": true,
-      "dimensions": 1,
-      "default": null,
-      "generated": null,
-      "identity": null,
       "name": "keywords",
       "entityType": "columns",
       "schema": "public",
@@ -572,6 +436,32 @@
     {
       "type": "text",
       "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "resume_text",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "talents"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "resume_pdf_base64",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "talents"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
       "default": "'uploaded'",
@@ -591,19 +481,6 @@
       "generated": null,
       "identity": null,
       "name": "created_at",
-      "entityType": "columns",
-      "schema": "public",
-      "table": "talents"
-    },
-    {
-      "type": "vector(3072)",
-      "typeSchema": null,
-      "notNull": false,
-      "dimensions": 0,
-      "default": null,
-      "generated": null,
-      "identity": null,
-      "name": "embedding",
       "entityType": "columns",
       "schema": "public",
       "table": "talents"
@@ -649,57 +526,6 @@
     {
       "nameExplicit": false,
       "columns": [
-        "job_description_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "job_descriptions",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "matches_job_description_id_job_descriptions_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "matches"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "talent_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "talents",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "matches_talent_id_talents_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "matches"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
-        "recruiter_id"
-      ],
-      "schemaTo": "public",
-      "tableTo": "recruiters",
-      "columnsTo": [
-        "id"
-      ],
-      "onUpdate": "NO ACTION",
-      "onDelete": "NO ACTION",
-      "name": "matches_recruiter_id_recruiters_id_fkey",
-      "entityType": "fks",
-      "schema": "public",
-      "table": "matches"
-    },
-    {
-      "nameExplicit": false,
-      "columns": [
         "recruiter_id"
       ],
       "schemaTo": "public",
@@ -722,16 +548,6 @@
       "name": "job_descriptions_pkey",
       "schema": "public",
       "table": "job_descriptions",
-      "entityType": "pks"
-    },
-    {
-      "columns": [
-        "id"
-      ],
-      "nameExplicit": false,
-      "name": "matches_pkey",
-      "schema": "public",
-      "table": "matches",
       "entityType": "pks"
     },
     {

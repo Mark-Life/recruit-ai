@@ -12,6 +12,9 @@ export class JobDescriptionRepository extends Context.Tag(
     readonly findById: (
       id: JobDescriptionId
     ) => Effect.Effect<StructuredJd, JobDescriptionNotFoundError>;
+    readonly findByIds: (
+      ids: readonly JobDescriptionId[]
+    ) => Effect.Effect<readonly StructuredJd[]>;
     readonly findAll: () => Effect.Effect<readonly StructuredJd[]>;
     readonly updateStatus: (
       id: JobDescriptionId,

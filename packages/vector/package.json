@@ -1,0 +1,27 @@
+{
+  "name": "@workspace/vector",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "lint": "bunx --bun ultracite check",
+    "typecheck": "tsc --noEmit",
+    "setup": "dotenv -e ../../.env.local -- bun src/setup.ts"
+  },
+  "exports": {
+    "./config": "./src/config.ts",
+    "./client": "./src/client.ts",
+    "./setup": "./src/setup.ts",
+    "./adapters/*": "./src/adapters/*.ts"
+  },
+  "dependencies": {
+    "@qdrant/js-client-rest": "1.12.0",
+    "@workspace/core": "workspace:*",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@workspace/env": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "typescript": "^5.9.3"
+  }
+}

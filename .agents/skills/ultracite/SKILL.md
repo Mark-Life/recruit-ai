@@ -1,3 +1,12 @@
+---
+name: lint-and-format
+description: >-
+  Lint and format TypeScript/React code using Ultracite (Biome). Use when writing,
+  reviewing, or fixing code to enforce project coding standards including type safety,
+  accessibility, performance, and modern JS/TS patterns. Run `bun x ultracite fix`
+  to auto-fix issues or `bun x ultracite check` to validate.
+---
+
 # Ultracite Code Standards
 
 This project uses **Ultracite**, a zero-config preset that enforces strict code quality standards through automated formatting and linting.
@@ -123,9 +132,3 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 Most formatting and common issues are automatically fixed by Biome. Run `bun x ultracite fix` before committing to ensure compliance.
 
 ---
-
-## Local Effect Source
-
-The Effect v3 repository is cloned to `~/.local/share/effect-solutions/effect` for reference.
-Use this to explore APIs, find usage examples, and understand implementation
-details when the documentation isn't enough.

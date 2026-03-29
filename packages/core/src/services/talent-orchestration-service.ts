@@ -3,6 +3,7 @@ import type {
   EmbeddingError,
   LlmError,
   TalentNotFoundError,
+  VectorSearchError,
 } from "../domain/errors";
 import type { RecruiterId, TalentId } from "../domain/models/ids";
 import type { ResumeExtraction } from "../domain/models/resume-extraction";
@@ -10,9 +11,14 @@ import { Talent } from "../domain/models/talent";
 import type { DeepPartial } from "../ports/llm-port";
 import { LlmPort } from "../ports/llm-port";
 import { TalentRepository } from "../ports/talent-repository";
+import { VectorSearchPort } from "../ports/vector-search-port";
 import { ProfileIngestionService } from "./profile-ingestion-service";
 
-type ExtractTalentError = LlmError | EmbeddingError | TalentNotFoundError;
+type ExtractTalentError =
+  | LlmError
+  | EmbeddingError
+  | VectorSearchError
+  | TalentNotFoundError;
 
 export class TalentOrchestrationService extends Context.Tag(
   "@recruit/TalentOrchestrationService"
@@ -32,10 +38,13 @@ export class TalentOrchestrationService extends Context.Tag(
       id: TalentId
     ) => Stream.Stream<DeepPartial<ResumeExtraction>, ExtractTalentError>;
 
-    readonly confirmSkills: (
+    readonly confirmKeywords: (
       id: TalentId,
-      skills: readonly string[]
-    ) => Effect.Effect<Talent, TalentNotFoundError>;
+      keywords: readonly string[]
+    ) => Effect.Effect<
+      Talent,
+      TalentNotFoundError | EmbeddingError | VectorSearchError
+    >;
   }
 >() {
   static readonly layer = Layer.effect(
@@ -44,8 +53,9 @@ export class TalentOrchestrationService extends Context.Tag(
       const llm = yield* LlmPort;
       const talentRepo = yield* TalentRepository;
       const profileIngestion = yield* ProfileIngestionService;
+      const vectorSearch = yield* VectorSearchPort;
 
-      /** Update the existing draft with extraction results and generate embedding. */
+      /** Update the existing draft with extraction results, embed, and upsert to Qdrant. */
       const persistExtraction = (
         id: TalentId,
         ref: Ref.Ref<DeepPartial<ResumeExtraction>>,
@@ -56,7 +66,7 @@ export class TalentOrchestrationService extends Context.Tag(
 
           const updated = yield* talentRepo.update(id, {
             title: extraction.title,
-            skills: [...extraction.skills],
+            keywords: [...extraction.keywords],
             experienceYears: extraction.experienceYears,
             location: extraction.location,
             workModes: [...extraction.workModes],
@@ -68,9 +78,14 @@ export class TalentOrchestrationService extends Context.Tag(
             new Talent({ ...existing, ...updated })
           );
 
-          yield* talentRepo.update(id, { keywords: [...enriched.keywords] }, [
-            ...enriched.embedding,
-          ]);
+          yield* vectorSearch.upsertTalent(id, enriched.embedding, {
+            keywords: [...updated.keywords],
+            workModes: [...updated.workModes],
+            location: updated.location,
+            experienceYears: updated.experienceYears,
+            willingToRelocate: updated.willingToRelocate,
+            status: "reviewing",
+          });
         });
 
       return TalentOrchestrationService.of({
@@ -80,7 +95,6 @@ export class TalentOrchestrationService extends Context.Tag(
               id: crypto.randomUUID() as TalentId,
               name: params.name,
               title: "",
-              skills: [],
               keywords: [],
               experienceYears: 0,
               location: "",
@@ -120,11 +134,21 @@ export class TalentOrchestrationService extends Context.Tag(
             })
           ),
 
-        confirmSkills: (id, skills) =>
+        confirmKeywords: (id, keywords) =>
           Effect.gen(function* () {
-            yield* talentRepo.updateSkills(id, skills);
+            yield* talentRepo.updateKeywords(id, keywords);
             yield* talentRepo.updateStatus(id, "matched");
-            return yield* talentRepo.findById(id);
+            const talent = yield* talentRepo.findById(id);
+            const enriched = yield* profileIngestion.enrich(talent);
+            yield* vectorSearch.upsertTalent(id, enriched.embedding, {
+              keywords: [...talent.keywords],
+              workModes: [...talent.workModes],
+              location: talent.location,
+              experienceYears: talent.experienceYears,
+              willingToRelocate: talent.willingToRelocate,
+              status: "matched",
+            });
+            return talent;
           }),
       });
     })

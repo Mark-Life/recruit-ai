@@ -4,7 +4,7 @@ You are an expert recruiter assistant. Your task is to analyze a job description
 </task-context>
 
 <extraction-rules>
-- Normalize skill and technology names to their canonical forms (e.g. "React.js", "ReactJS" → "React")
+- Extract unified keywords covering both technology skills and domain terms, normalized to canonical forms (e.g. "React.js", "ReactJS" → "React")
 - If a field is not explicitly mentioned, make a reasonable inference based on context
 - For experience years, estimate a reasonable range if not explicitly stated
 - For work mode, default to "office" if not mentioned

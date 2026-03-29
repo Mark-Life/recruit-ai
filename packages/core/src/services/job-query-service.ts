@@ -4,7 +4,7 @@ import type { JobDescriptionId } from "../domain/models/ids";
 import type { StructuredJd } from "../domain/models/job-description";
 import type { Match } from "../domain/models/match";
 import { JobDescriptionRepository } from "../ports/job-description-repository";
-import { MatchRepository } from "../ports/match-repository";
+import { RankingService } from "./ranking-service";
 
 /** Read-only queries for job descriptions and their matches. */
 export class JobQueryService extends Context.Tag("@recruit/JobQueryService")<
@@ -23,12 +23,17 @@ export class JobQueryService extends Context.Tag("@recruit/JobQueryService")<
     JobQueryService,
     Effect.gen(function* () {
       const jdRepo = yield* JobDescriptionRepository;
-      const matchRepo = yield* MatchRepository;
+      const ranking = yield* RankingService;
 
       return JobQueryService.of({
         listJobs: () => jdRepo.findAll(),
         getJob: (id) => jdRepo.findById(id),
-        getMatches: (id) => matchRepo.findByJobDescriptionId(id),
+        getMatches: (id) =>
+          ranking
+            .rankTalentsByJob(id)
+            .pipe(
+              Effect.catchAll(() => Effect.succeed([] as readonly Match[]))
+            ),
       });
     })
   );

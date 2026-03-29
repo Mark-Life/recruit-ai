@@ -33,8 +33,15 @@ const seniorReactDev = Talent.make({
   id: TalentId.make("t-1"),
   name: "Senior React Dev",
   title: "Senior Frontend Engineer",
-  skills: ["react", "typescript", "next.js", "graphql"],
-  keywords: ["frontend", "spa", "ui"],
+  keywords: [
+    "react",
+    "typescript",
+    "next.js",
+    "graphql",
+    "frontend",
+    "spa",
+    "ui",
+  ],
   experienceYears: 7,
   location: "Berlin",
   workModes: ["office", "hybrid"],
@@ -48,8 +55,7 @@ const juniorReactDev = Talent.make({
   id: TalentId.make("t-2"),
   name: "Junior React Dev",
   title: "Junior Frontend Developer",
-  skills: ["react", "javascript", "css"],
-  keywords: ["frontend", "web"],
+  keywords: ["react", "javascript", "css", "frontend", "web"],
   experienceYears: 2,
   location: "Berlin",
   workModes: ["office", "hybrid", "remote"],
@@ -63,8 +69,14 @@ const backendEngineer = Talent.make({
   id: TalentId.make("t-3"),
   name: "Backend Engineer",
   title: "Backend Developer",
-  skills: ["go", "postgresql", "kubernetes"],
-  keywords: ["backend", "api", "microservices"],
+  keywords: [
+    "go",
+    "postgresql",
+    "kubernetes",
+    "backend",
+    "api",
+    "microservices",
+  ],
   experienceYears: 5,
   location: "London",
   workModes: ["remote"],
@@ -80,8 +92,7 @@ const reactJd = StructuredJd.make({
   rawText: "Looking for a senior React developer in Berlin",
   summary: "Senior React developer with TypeScript experience",
   roleTitle: "Senior Frontend Engineer",
-  skills: ["react", "typescript", "next.js"],
-  keywords: ["frontend", "spa"],
+  keywords: ["react", "typescript", "next.js", "frontend", "spa"],
   seniority: "senior",
   employmentType: "full-time",
   workMode: "hybrid",
@@ -115,8 +126,8 @@ describe("RankingService.rankTalents", () => {
   it.effect("ranks matching talent above non-matching", () => {
     // Both talents support hybrid (JD work mode) and are in Berlin (JD location)
     const candidates: readonly VectorCandidate[] = [
-      { talentId: TalentId.make("t-1"), similarity: 0.92 },
-      { talentId: TalentId.make("t-2"), similarity: 0.45 },
+      { id: TalentId.make("t-1"), similarity: 0.92 },
+      { id: TalentId.make("t-2"), similarity: 0.45 },
     ];
     const stores = buildStores(
       reactJd,
@@ -127,10 +138,7 @@ describe("RankingService.rankTalents", () => {
 
     return Effect.gen(function* () {
       const ranking = yield* RankingService;
-      const matches = yield* ranking.rankTalents(
-        "any raw text",
-        OrganizationId.make("org-1")
-      );
+      const matches = yield* ranking.rankTalentsByJob(reactJd.id);
 
       expect(matches).toHaveLength(2);
       expect(matches[0]!.talentId).toBe(TalentId.make("t-1"));
@@ -142,8 +150,8 @@ describe("RankingService.rankTalents", () => {
   it.effect("keyword overlap boosts score", () => {
     // Both have same semantic similarity, but senior has better keyword match
     const candidates: readonly VectorCandidate[] = [
-      { talentId: TalentId.make("t-1"), similarity: 0.7 },
-      { talentId: TalentId.make("t-2"), similarity: 0.7 },
+      { id: TalentId.make("t-1"), similarity: 0.7 },
+      { id: TalentId.make("t-2"), similarity: 0.7 },
     ];
     const stores = buildStores(
       reactJd,
@@ -154,10 +162,7 @@ describe("RankingService.rankTalents", () => {
 
     return Effect.gen(function* () {
       const ranking = yield* RankingService;
-      const matches = yield* ranking.rankTalents(
-        "any raw text",
-        OrganizationId.make("org-1")
-      );
+      const matches = yield* ranking.rankTalentsByJob(reactJd.id);
 
       expect(matches).toHaveLength(2);
       // Senior has react + typescript + next.js overlap vs JD's react + typescript + next.js
@@ -171,8 +176,8 @@ describe("RankingService.rankTalents", () => {
   it.effect("experience outside range penalizes score", () => {
     // JD wants 4-8 years. Junior has 2 (below), senior has 7 (within range)
     const candidates: readonly VectorCandidate[] = [
-      { talentId: TalentId.make("t-1"), similarity: 0.7 },
-      { talentId: TalentId.make("t-2"), similarity: 0.7 },
+      { id: TalentId.make("t-1"), similarity: 0.7 },
+      { id: TalentId.make("t-2"), similarity: 0.7 },
     ];
     const stores = buildStores(
       reactJd,
@@ -183,10 +188,7 @@ describe("RankingService.rankTalents", () => {
 
     return Effect.gen(function* () {
       const ranking = yield* RankingService;
-      const matches = yield* ranking.rankTalents(
-        "any raw text",
-        OrganizationId.make("org-1")
-      );
+      const matches = yield* ranking.rankTalentsByJob(reactJd.id);
 
       const seniorMatch = matches.find(
         (m) => m.talentId === TalentId.make("t-1")
@@ -203,8 +205,8 @@ describe("RankingService.rankTalents", () => {
   it.effect("work mode mismatch excludes talent via hard constraint", () => {
     // JD wants hybrid, backend engineer only does remote → excluded entirely
     const candidates: readonly VectorCandidate[] = [
-      { talentId: TalentId.make("t-1"), similarity: 0.7 },
-      { talentId: TalentId.make("t-3"), similarity: 0.7 },
+      { id: TalentId.make("t-1"), similarity: 0.7 },
+      { id: TalentId.make("t-3"), similarity: 0.7 },
     ];
     const stores = buildStores(
       reactJd,
@@ -215,10 +217,7 @@ describe("RankingService.rankTalents", () => {
 
     return Effect.gen(function* () {
       const ranking = yield* RankingService;
-      const matches = yield* ranking.rankTalents(
-        "any raw text",
-        OrganizationId.make("org-1")
-      );
+      const matches = yield* ranking.rankTalentsByJob(reactJd.id);
 
       // Backend engineer excluded — only senior remains
       expect(matches).toHaveLength(1);
@@ -235,8 +234,8 @@ describe("RankingService.rankTalents", () => {
     });
     // Senior only does office/hybrid, backend does remote
     const candidates: readonly VectorCandidate[] = [
-      { talentId: TalentId.make("t-1"), similarity: 0.8 },
-      { talentId: TalentId.make("t-3"), similarity: 0.8 },
+      { id: TalentId.make("t-1"), similarity: 0.8 },
+      { id: TalentId.make("t-3"), similarity: 0.8 },
     ];
     const stores = buildStores(
       remoteJd,
@@ -247,10 +246,7 @@ describe("RankingService.rankTalents", () => {
 
     return Effect.gen(function* () {
       const ranking = yield* RankingService;
-      const matches = yield* ranking.rankTalents(
-        "any raw text",
-        OrganizationId.make("org-1")
-      );
+      const matches = yield* ranking.rankTalentsByJob(reactJd.id);
 
       // Senior doesn't support remote → excluded by hard constraint
       expect(matches).toHaveLength(1);
@@ -263,8 +259,8 @@ describe("RankingService.rankTalents", () => {
   it.effect("returns correct recruiter mapping", () => {
     // Both talents pass hard constraints (hybrid + Berlin)
     const candidates: readonly VectorCandidate[] = [
-      { talentId: TalentId.make("t-1"), similarity: 0.9 },
-      { talentId: TalentId.make("t-2"), similarity: 0.5 },
+      { id: TalentId.make("t-1"), similarity: 0.9 },
+      { id: TalentId.make("t-2"), similarity: 0.5 },
     ];
     const stores = buildStores(
       reactJd,
@@ -275,10 +271,7 @@ describe("RankingService.rankTalents", () => {
 
     return Effect.gen(function* () {
       const ranking = yield* RankingService;
-      const matches = yield* ranking.rankTalents(
-        "any raw text",
-        OrganizationId.make("org-1")
-      );
+      const matches = yield* ranking.rankTalentsByJob(reactJd.id);
 
       // Both covered by recruiter Alice (rec-1)
       expect(matches[0]!.recruiterId).toBe(RecruiterId.make("rec-1"));
@@ -291,10 +284,7 @@ describe("RankingService.rankTalents", () => {
 
     return Effect.gen(function* () {
       const ranking = yield* RankingService;
-      const matches = yield* ranking.rankTalents(
-        "any raw text",
-        OrganizationId.make("org-1")
-      );
+      const matches = yield* ranking.rankTalentsByJob(reactJd.id);
       expect(matches).toHaveLength(0);
     }).pipe(Effect.provide(makeTestLayer(stores)));
   });
@@ -304,8 +294,8 @@ describe("RankingService.rankTalents", () => {
   it.effect("excludes talent with incompatible work mode", () => {
     // JD wants hybrid, backend engineer only does remote → excluded
     const candidates: readonly VectorCandidate[] = [
-      { talentId: TalentId.make("t-1"), similarity: 0.9 },
-      { talentId: TalentId.make("t-3"), similarity: 0.9 },
+      { id: TalentId.make("t-1"), similarity: 0.9 },
+      { id: TalentId.make("t-3"), similarity: 0.9 },
     ];
     const stores = buildStores(
       reactJd,
@@ -316,10 +306,7 @@ describe("RankingService.rankTalents", () => {
 
     return Effect.gen(function* () {
       const ranking = yield* RankingService;
-      const matches = yield* ranking.rankTalents(
-        "any raw text",
-        OrganizationId.make("org-1")
-      );
+      const matches = yield* ranking.rankTalentsByJob(reactJd.id);
 
       expect(matches).toHaveLength(1);
       expect(matches[0]!.talentId).toBe(TalentId.make("t-1"));
@@ -350,8 +337,8 @@ describe("RankingService.rankTalents", () => {
       recruiterId: RecruiterId.make("rec-1"),
     });
     const candidates: readonly VectorCandidate[] = [
-      { talentId: TalentId.make("t-london"), similarity: 0.95 },
-      { talentId: TalentId.make("t-berlin"), similarity: 0.8 },
+      { id: TalentId.make("t-london"), similarity: 0.95 },
+      { id: TalentId.make("t-berlin"), similarity: 0.8 },
     ];
     const stores = buildStores(
       officeJd,
@@ -362,10 +349,7 @@ describe("RankingService.rankTalents", () => {
 
     return Effect.gen(function* () {
       const ranking = yield* RankingService;
-      const matches = yield* ranking.rankTalents(
-        "any raw text",
-        OrganizationId.make("org-1")
-      );
+      const matches = yield* ranking.rankTalentsByJob(reactJd.id);
 
       expect(matches).toHaveLength(1);
       expect(matches[0]!.talentId).toBe(TalentId.make("t-berlin"));
@@ -388,7 +372,7 @@ describe("RankingService.rankTalents", () => {
       recruiterId: RecruiterId.make("rec-1"),
     });
     const candidates: readonly VectorCandidate[] = [
-      { talentId: TalentId.make("t-london-reloc"), similarity: 0.9 },
+      { id: TalentId.make("t-london-reloc"), similarity: 0.9 },
     ];
     const stores = buildStores(
       officeJd,
@@ -399,10 +383,7 @@ describe("RankingService.rankTalents", () => {
 
     return Effect.gen(function* () {
       const ranking = yield* RankingService;
-      const matches = yield* ranking.rankTalents(
-        "any raw text",
-        OrganizationId.make("org-1")
-      );
+      const matches = yield* ranking.rankTalentsByJob(reactJd.id);
 
       expect(matches).toHaveLength(1);
       expect(matches[0]!.talentId).toBe(TalentId.make("t-london-reloc"));
@@ -418,7 +399,7 @@ describe("RankingService.rankTalents", () => {
     });
     // Backend engineer is remote-only and in London — should pass for remote JD
     const candidates: readonly VectorCandidate[] = [
-      { talentId: TalentId.make("t-3"), similarity: 0.8 },
+      { id: TalentId.make("t-3"), similarity: 0.8 },
     ];
     const stores = buildStores(
       remoteJd,
@@ -429,10 +410,7 @@ describe("RankingService.rankTalents", () => {
 
     return Effect.gen(function* () {
       const ranking = yield* RankingService;
-      const matches = yield* ranking.rankTalents(
-        "any raw text",
-        OrganizationId.make("org-1")
-      );
+      const matches = yield* ranking.rankTalentsByJob(reactJd.id);
 
       expect(matches).toHaveLength(1);
       expect(matches[0]!.talentId).toBe(TalentId.make("t-3"));

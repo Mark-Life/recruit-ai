@@ -14,18 +14,21 @@ import { Input } from "@workspace/ui/components/input";
 import { Progress } from "@workspace/ui/components/progress";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import {
+  AlertTriangleIcon,
   ArrowRightIcon,
   CheckCircleIcon,
   CheckIcon,
+  RefreshCwIcon,
   SearchIcon,
   SparklesIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Suspense, use, useState } from "react";
+import { Suspense, use, useEffect, useState } from "react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { PageHeader } from "@/components/page-header";
 import type { Job, Match, ScoreBreakdown } from "@/lib/api";
 import { useJob, useMatchesForJob } from "@/lib/api";
+import { useExtractJobStream } from "@/lib/use-stream";
 import { consumeStream } from "@/lib/utils";
 import { JdTextPanel } from "../jd-text-panel";
 import { JobPipelineSteps } from "../job-pipeline-steps";
@@ -81,7 +84,19 @@ function JobDetailContent({ id }: { id: string }) {
 // Right panel dispatcher
 // ---------------------------------------------------------------------------
 
+/** Extraction is considered incomplete when critical fields are empty */
+function isExtractionIncomplete(job: Job) {
+  return !job.summary && job.keywords.length === 0;
+}
+
 function RightPanel({ job }: { job: Job }) {
+  if (
+    job.status === "draft" ||
+    (job.status === "refining" && isExtractionIncomplete(job))
+  ) {
+    return <FailedExtractionPanel job={job} />;
+  }
+
   switch (job.status) {
     case "refining":
       return <RefiningPanel job={job} />;
@@ -92,6 +107,69 @@ function RightPanel({ job }: { job: Job }) {
     default:
       return <MatchingPanel />;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Draft — extraction failed or not yet run, allow retry
+// ---------------------------------------------------------------------------
+
+function FailedExtractionPanel({ job }: { job: Job }) {
+  const queryClient = useQueryClient();
+  const stream = useExtractJobStream(job.id);
+  const [retrying, setRetrying] = useState(false);
+
+  useEffect(() => {
+    if (!stream.isStreaming && retrying && !stream.error) {
+      queryClient.invalidateQueries({ queryKey: ["jobs", job.id] });
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    }
+  }, [stream.isStreaming, retrying, stream.error, queryClient, job.id]);
+
+  function handleRetry() {
+    setRetrying(true);
+    stream.mutate();
+  }
+
+  if (stream.isStreaming) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 py-16">
+        <div className="relative">
+          <div className="absolute inset-0 animate-ping rounded-full bg-primary/10" />
+          <div className="relative flex size-16 items-center justify-center rounded-full bg-primary/10">
+            <SparklesIcon className="size-7 animate-pulse text-primary" />
+          </div>
+        </div>
+        <div className="flex flex-col items-center gap-2 text-center">
+          <h3 className="font-semibold text-base">Extracting...</h3>
+          <p className="max-w-xs text-muted-foreground text-sm">
+            Analyzing the job description and generating structured data.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 py-16">
+      <div className="flex size-16 items-center justify-center rounded-full bg-destructive/10">
+        <AlertTriangleIcon className="size-7 text-destructive" />
+      </div>
+
+      <div className="flex flex-col items-center gap-2 text-center">
+        <h3 className="font-semibold text-base">Extraction Failed</h3>
+        <p className="max-w-xs text-muted-foreground text-sm">
+          {stream.error
+            ? stream.error.message
+            : "The AI extraction did not complete. This can happen due to rate limits or temporary service issues."}
+        </p>
+      </div>
+
+      <Button onClick={handleRetry} variant="outline">
+        <RefreshCwIcon className="mr-1.5 size-4" />
+        Retry Extraction
+      </Button>
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -277,7 +355,7 @@ function MatchingPanel() {
 
       {/* Animated steps */}
       <div className="flex flex-col gap-3 pt-2">
-        <AnalysisStep done label="Extracting skills and requirements" />
+        <AnalysisStep done label="Extracting keywords and requirements" />
         <AnalysisStep done label="Generating embedding vector" />
         <AnalysisStep active label="Searching talent pool" />
         <AnalysisStep label="Scoring and ranking matches" />
@@ -404,7 +482,10 @@ function MatchCard({ match, rank }: { match: Match; rank: number }) {
           <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted font-mono font-semibold text-xs">
             {rank}
           </span>
-          <span>Talent #{match.talentId.slice(0, ID_PREVIEW_LENGTH)}</span>
+          <span>
+            {match.talentName ??
+              `Talent #${match.talentId.slice(0, ID_PREVIEW_LENGTH)}`}
+          </span>
         </CardTitle>
       </CardHeader>
 

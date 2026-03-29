@@ -16,34 +16,46 @@ export function JdTextPanel({ job }: { job: Job }) {
       </div>
 
       {/* Meta tags */}
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="inline-flex items-center gap-1 text-muted-foreground">
-          <MapPinIcon className="size-3.5" />
-          {job.location}
-        </span>
-        <span className="inline-flex items-center gap-1 text-muted-foreground">
-          <MonitorIcon className="size-3.5" />
-          {job.workMode}
-        </span>
-        <span className="inline-flex items-center gap-1 text-muted-foreground">
-          <BriefcaseIcon className="size-3.5" />
-          {job.employmentType}
-        </span>
-        <span className="inline-flex items-center gap-1 text-muted-foreground">
-          <ClockIcon className="size-3.5" />
-          {job.experienceYearsMin}–{job.experienceYearsMax} yrs
-        </span>
-      </div>
+      {(job.location || job.workMode || job.employmentType) && (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          {job.location && (
+            <span className="inline-flex items-center gap-1 text-muted-foreground">
+              <MapPinIcon className="size-3.5" />
+              {job.location}
+            </span>
+          )}
+          {job.workMode && (
+            <span className="inline-flex items-center gap-1 text-muted-foreground">
+              <MonitorIcon className="size-3.5" />
+              {job.workMode}
+            </span>
+          )}
+          {job.employmentType && (
+            <span className="inline-flex items-center gap-1 text-muted-foreground">
+              <BriefcaseIcon className="size-3.5" />
+              {job.employmentType}
+            </span>
+          )}
+          {job.experienceYearsMin != null && job.experienceYearsMax != null && (
+            <span className="inline-flex items-center gap-1 text-muted-foreground">
+              <ClockIcon className="size-3.5" />
+              {job.experienceYearsMin}–{job.experienceYearsMax} yrs
+            </span>
+          )}
+        </div>
+      )}
 
-      {/* Skills */}
-      <div className="flex flex-wrap gap-1.5">
-        <Badge variant="outline">{job.seniority}</Badge>
-        {job.skills.map((s) => (
-          <Badge key={s} variant="secondary">
-            {s}
-          </Badge>
-        ))}
-      </div>
+      {/* Keywords */}
+      {(job.seniority || job.keywords.length > 0) && (
+        <div className="flex flex-wrap gap-1.5">
+          {job.seniority && <Badge variant="outline">{job.seniority}</Badge>}
+          {job.keywords.map((kw) => (
+            <Badge key={kw} variant="secondary">
+              {kw}
+            </Badge>
+          ))}
+        </div>
+      )}
 
       {/* AI Summary */}
       {job.summary && (

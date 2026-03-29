@@ -106,16 +106,16 @@ export function useTalent(id: string) {
   });
 }
 
-export function useConfirmSkills(talentId: string) {
+export function useConfirmKeywords(talentId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (skills: readonly string[]) => {
+    mutationFn: async (keywords: readonly string[]) => {
       const client = await getClient();
       return Effect.runPromise(
-        client.talents.confirmSkills({
+        client.talents.confirmKeywords({
           path: { id: talentId },
-          payload: { skills: [...skills] },
+          payload: { keywords: [...keywords] },
         })
       );
     },
@@ -136,4 +136,10 @@ export function useMatchesForTalent(talentId: string) {
       );
     },
   });
+}
+
+/** Imperative fetch for use outside React Query hooks */
+export async function fetchMatchesForTalent(talentId: string) {
+  const client = await getClient();
+  return Effect.runPromise(client.talents.matches({ path: { id: talentId } }));
 }

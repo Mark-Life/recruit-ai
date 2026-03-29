@@ -60,8 +60,7 @@ const TestLayer = Layer.succeed(LlmPort, {
       ResumeExtraction.make({
         name: "Test User",
         title: "Engineer",
-        skills: ["TypeScript"],
-        keywords: ["engineering"],
+        keywords: ["engineering", "TypeScript"],
         experienceYears: 5,
         location: "Unknown",
         workModes: ["remote"],
@@ -73,7 +72,6 @@ const TestLayer = Layer.succeed(LlmPort, {
       ResumeExtraction.make({
         name: "Test User",
         title: "Engineer",
-        skills: ["TypeScript"],
         keywords: ["engineering"],
         experienceYears: 5,
         location: "Unknown",
@@ -102,7 +100,7 @@ describe("LlmAdapterGemini", () => {
       });
 
       expect(result.roleTitle).toBe("Senior Frontend Engineer");
-      expect(result.skills).toEqual(["React", "TypeScript"]);
+      expect(result.keywords).toContain("React");
       expect(result.seniority).toBe("senior");
       expect(result.id).toBe(JobDescriptionId.make("jd-test"));
       expect(result.organizationId).toBe(OrganizationId.make("org-test"));

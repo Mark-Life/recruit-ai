@@ -18,39 +18,6 @@ const WEIGHTS = {
 } as const;
 
 /**
- * Hard constraint filter — removes talents that cannot possibly match.
- * Work mode must be compatible, and for non-remote JDs the talent must
- * be in the right location or have a viable relocation path.
- */
-export function filterByHardConstraints(
-  jd: StructuredJd,
-  talents: readonly Talent[]
-): readonly Talent[] {
-  return talents.filter((talent) => {
-    if (!talent.workModes.includes(jd.workMode)) {
-      return false;
-    }
-
-    if (jd.workMode !== "remote") {
-      const talentLoc = talent.location.toLowerCase();
-      const jdLoc = jd.location.toLowerCase();
-      const locationMatch =
-        talentLoc.includes(jdLoc) || jdLoc.includes(talentLoc);
-      if (
-        !(
-          locationMatch ||
-          (talent.willingToRelocate && jd.willingToSponsorRelocation)
-        )
-      ) {
-        return false;
-      }
-    }
-
-    return true;
-  });
-}
-
-/**
  * Pure scoring — no Effect services, fully testable.
  * Combines semantic similarity from vector search with keyword overlap,
  * experience alignment, and hard constraint checks.
@@ -60,23 +27,15 @@ export function scoreTalents(
   talents: readonly Talent[],
   candidates: readonly VectorCandidate[]
 ): readonly ScoredTalent[] {
-  const similarityMap = new Map(
-    candidates.map((c) => [c.talentId, c.similarity])
-  );
+  const similarityMap = new Map(candidates.map((c) => [c.id, c.similarity]));
 
-  const jdSkills = new Set(jd.skills.map((s) => s.toLowerCase()));
   const jdKeywords = new Set(jd.keywords.map((k) => k.toLowerCase()));
 
   return talents
     .map((talent) => {
       const semanticSimilarity = similarityMap.get(talent.id) ?? 0;
 
-      const keywordOverlap = computeKeywordOverlap(
-        talent.skills,
-        talent.keywords,
-        jdSkills,
-        jdKeywords
-      );
+      const keywordOverlap = computeKeywordOverlap(talent.keywords, jdKeywords);
 
       const experienceFit = computeExperienceFit(
         talent.experienceYears,
@@ -104,30 +63,96 @@ export function scoreTalents(
     .sort((a, b) => b.totalScore - a.totalScore);
 }
 
-/** Jaccard-style overlap between talent tags and JD tags (0–1) */
+interface ScoredJob {
+  readonly breakdown: ScoreBreakdown;
+  readonly jd: StructuredJd;
+  readonly totalScore: number;
+}
+
+/**
+ * Mirror of scoreTalents — scores jobs against a single talent.
+ * Uses the same 4-factor weighted scoring.
+ */
+export function scoreJobs(
+  talent: Talent,
+  jds: readonly StructuredJd[],
+  candidates: readonly VectorCandidate[]
+): readonly ScoredJob[] {
+  const similarityMap = new Map(candidates.map((c) => [c.id, c.similarity]));
+  const talentKeywords = new Set(talent.keywords.map((k) => k.toLowerCase()));
+
+  return jds
+    .map((jd) => {
+      const semanticSimilarity = similarityMap.get(jd.id) ?? 0;
+
+      const jdKeywords = new Set(jd.keywords.map((k) => k.toLowerCase()));
+      const keywordOverlap = computeKeywordOverlapSets(
+        talentKeywords,
+        jdKeywords
+      );
+
+      const experienceFit = computeExperienceFit(
+        talent.experienceYears,
+        jd.experienceYearsMin,
+        jd.experienceYearsMax
+      );
+
+      const constraintFit = computeConstraintFit(talent, jd);
+
+      const breakdown: ScoreBreakdown = {
+        semanticSimilarity,
+        keywordOverlap,
+        experienceFit,
+        constraintFit,
+      } as ScoreBreakdown;
+
+      const totalScore =
+        semanticSimilarity * WEIGHTS.semanticSimilarity +
+        keywordOverlap * WEIGHTS.keywordOverlap +
+        experienceFit * WEIGHTS.experienceFit +
+        constraintFit * WEIGHTS.constraintFit;
+
+      return { jd, breakdown, totalScore };
+    })
+    .sort((a, b) => b.totalScore - a.totalScore);
+}
+
+/** Shared overlap computation between two keyword sets (0-1) */
+function computeKeywordOverlapSets(
+  setA: ReadonlySet<string>,
+  setB: ReadonlySet<string>
+): number {
+  if (setB.size === 0) {
+    return 0;
+  }
+  let overlap = 0;
+  for (const tag of setA) {
+    if (setB.has(tag)) {
+      overlap++;
+    }
+  }
+  return overlap / setB.size;
+}
+
+/** Jaccard-style overlap between talent keywords and JD keywords (0-1) */
 function computeKeywordOverlap(
-  talentSkills: readonly string[],
   talentKeywords: readonly string[],
-  jdSkills: ReadonlySet<string>,
   jdKeywords: ReadonlySet<string>
 ): number {
-  const talentTags = new Set(
-    [...talentSkills, ...talentKeywords].map((t) => t.toLowerCase())
-  );
-  const jdTags = new Set([...jdSkills, ...jdKeywords]);
-
-  if (jdTags.size === 0) {
+  if (jdKeywords.size === 0) {
     return 0;
   }
 
+  const talentTags = new Set(talentKeywords.map((t) => t.toLowerCase()));
+
   let overlap = 0;
   for (const tag of talentTags) {
-    if (jdTags.has(tag)) {
+    if (jdKeywords.has(tag)) {
       overlap++;
     }
   }
 
-  return overlap / jdTags.size;
+  return overlap / jdKeywords.size;
 }
 
 /** 1.0 if within range, degrades linearly outside (0–1) */

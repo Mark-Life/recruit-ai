@@ -1,5 +1,6 @@
 import { Effect, Layer, Stream } from "effect";
 import {
+  JobDescriptionNotFoundError,
   RecruiterNotFoundError,
   TalentNotFoundError,
 } from "../src/domain/errors";
@@ -8,6 +9,7 @@ import type { Recruiter } from "../src/domain/models/recruiter";
 import { ResumeExtraction } from "../src/domain/models/resume-extraction";
 import type { Talent } from "../src/domain/models/talent";
 import { EmbeddingPort } from "../src/ports/embedding-port";
+import { JobDescriptionRepository } from "../src/ports/job-description-repository";
 import { LlmPort } from "../src/ports/llm-port";
 import { RecruiterRepository } from "../src/ports/recruiter-repository";
 import { TalentRepository } from "../src/ports/talent-repository";
@@ -25,7 +27,7 @@ const STUB_EMBEDDING = [0.1, 0.2, 0.3] as const;
  */
 export interface TestStores {
   readonly recruiters: Map<string, Recruiter>;
-  /** LLM structureJd returns this for any input */
+  /** JD used for ranking tests */
   structuredJd: StructuredJd;
   readonly talents: Map<string, Talent>;
   /** Vector search returns these candidates in order */
@@ -58,8 +60,7 @@ function makeLlmTestLayer(stores: TestStores) {
         ResumeExtraction.make({
           name: "Test Talent",
           title: "Engineer",
-          skills: ["TypeScript"],
-          keywords: ["engineering"],
+          keywords: ["TypeScript", "engineering"],
           experienceYears: 5,
           location: "Unknown",
           workModes: ["remote"],
@@ -71,8 +72,7 @@ function makeLlmTestLayer(stores: TestStores) {
         ResumeExtraction.make({
           name: "Test Talent",
           title: "Engineer",
-          skills: ["TypeScript"],
-          keywords: ["engineering"],
+          keywords: ["TypeScript", "engineering"],
           experienceYears: 5,
           location: "Unknown",
           workModes: ["remote"],
@@ -94,8 +94,66 @@ function makeEmbeddingTestLayer() {
 
 function makeVectorSearchTestLayer(stores: TestStores) {
   return Layer.succeed(VectorSearchPort, {
-    search: (_vector, topK) =>
+    upsertTalent: () => Effect.void,
+    upsertJob: () => Effect.void,
+    searchTalentsByJobId: (_jobId, topK, filter) => {
+      const filtered = stores.vectorCandidates.filter((c) => {
+        const talent = stores.talents.get(c.id);
+        if (!talent) {
+          return false;
+        }
+        if (
+          filter?.workModes?.length &&
+          !filter.workModes.some((wm) =>
+            talent.workModes.includes(wm as "office" | "hybrid" | "remote")
+          )
+        ) {
+          return false;
+        }
+        if (filter?.location) {
+          const locMatch =
+            talent.location
+              .toLowerCase()
+              .includes(filter.location.toLowerCase()) ||
+            filter.location
+              .toLowerCase()
+              .includes(talent.location.toLowerCase());
+          if (
+            !(
+              locMatch ||
+              (filter.willingToRelocate && talent.willingToRelocate)
+            )
+          ) {
+            return false;
+          }
+        }
+        return true;
+      });
+      return Effect.succeed(filtered.slice(0, topK));
+    },
+    searchJobsByTalentId: (_talentId, topK) =>
       Effect.succeed(stores.vectorCandidates.slice(0, topK)),
+    deleteTalent: () => Effect.void,
+    deleteJob: () => Effect.void,
+  });
+}
+
+function makeJobDescriptionRepositoryTestLayer(stores: TestStores) {
+  return Layer.succeed(JobDescriptionRepository, {
+    create: (jd) => Effect.succeed(jd),
+    findById: (_id) =>
+      stores.structuredJd
+        ? Effect.succeed(stores.structuredJd)
+        : Effect.fail(
+            new JobDescriptionNotFoundError({ jobDescriptionId: _id })
+          ),
+    findByIds: () =>
+      Effect.succeed(stores.structuredJd ? [stores.structuredJd] : []),
+    findAll: () =>
+      Effect.succeed(stores.structuredJd ? [stores.structuredJd] : []),
+    updateStatus: () => Effect.void,
+    update: (_id, data) =>
+      Effect.succeed({ ...stores.structuredJd, ...data } as StructuredJd),
   });
 }
 
@@ -109,13 +167,19 @@ function makeTalentRepositoryTestLayer(stores: TestStores) {
       Effect.fromNullable(stores.talents.get(id)).pipe(
         Effect.mapError(() => new TalentNotFoundError({ talentId: id }))
       ),
+    findByIds: (ids) =>
+      Effect.succeed(
+        ids
+          .map((id) => stores.talents.get(id))
+          .filter((t): t is Talent => t !== undefined)
+      ),
     findAll: () => Effect.succeed([...stores.talents.values()]),
-    updateSkills: (id, skills) =>
+    updateKeywords: (id, keywords) =>
       Effect.fromNullable(stores.talents.get(id)).pipe(
         Effect.mapError(() => new TalentNotFoundError({ talentId: id })),
         Effect.tap((talent) =>
           Effect.sync(() =>
-            stores.talents.set(id, { ...talent, skills } as Talent)
+            stores.talents.set(id, { ...talent, keywords } as Talent)
           )
         ),
         Effect.asVoid
@@ -160,10 +224,11 @@ function makeRecruiterRepositoryTestLayer(stores: TestStores) {
 
 export function makeTestLayer(stores: TestStores) {
   return RankingService.layer.pipe(
-    Layer.provideMerge(makeLlmTestLayer(stores)),
-    Layer.provideMerge(makeEmbeddingTestLayer()),
     Layer.provideMerge(makeVectorSearchTestLayer(stores)),
+    Layer.provideMerge(makeJobDescriptionRepositoryTestLayer(stores)),
     Layer.provideMerge(makeTalentRepositoryTestLayer(stores)),
-    Layer.provideMerge(makeRecruiterRepositoryTestLayer(stores))
+    Layer.provideMerge(makeRecruiterRepositoryTestLayer(stores)),
+    Layer.provideMerge(makeLlmTestLayer(stores)),
+    Layer.provideMerge(makeEmbeddingTestLayer())
   );
 }

@@ -26,16 +26,22 @@ export const TalentsGroupLive = HttpApiBuilder.group(
           )
         )
       )
-      .handle("confirmSkills", ({ path, payload }) =>
+      .handle("confirmKeywords", ({ path, payload }) =>
         Effect.gen(function* () {
           const orchestration = yield* TalentOrchestrationService;
-          return yield* orchestration.confirmSkills(
+          return yield* orchestration.confirmKeywords(
             path.id as TalentId,
-            payload.skills
+            payload.keywords
           );
         }).pipe(
           Effect.catchTag("TalentNotFoundError", (e) =>
             Effect.fail(`Talent not found: ${e.talentId}`)
+          ),
+          Effect.catchTag("EmbeddingError", (e) =>
+            Effect.fail(`Embedding failed: ${e.message}`)
+          ),
+          Effect.catchTag("VectorSearchError", (e) =>
+            Effect.fail(`Vector search failed: ${e.message}`)
           )
         )
       )

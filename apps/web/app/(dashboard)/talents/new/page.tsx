@@ -1,50 +1,30 @@
 "use client";
 
-import { useForm } from "@tanstack/react-form";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
-import { Label } from "@workspace/ui/components/label";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { Separator } from "@workspace/ui/components/separator";
 import { Skeleton } from "@workspace/ui/components/skeleton";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@workspace/ui/components/tabs";
-import { Textarea } from "@workspace/ui/components/textarea";
 import {
   ArrowRightIcon,
   FileTextIcon,
   MapPinIcon,
   MonitorIcon,
+  PlusIcon,
   SparklesIcon,
-  UploadIcon,
   UserIcon,
   XIcon,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { PageHeader } from "@/components/page-header";
-import { useCreateDraftTalent } from "@/lib/api";
-import { SEED_RECRUITER_ID } from "@/lib/seed-constants";
+import type { Match } from "@/lib/api";
+import { fetchMatchesForTalent, useConfirmKeywords } from "@/lib/api";
 import { useExtractTalentStream } from "@/lib/use-stream";
+import { JobMatchCard, MatchCardSkeleton } from "../job-match-card";
 import { TalentPipelineSteps } from "../talent-pipeline-steps";
-
-const MAX_FILE_SIZE_MB = 10;
-const BYTES_PER_KB = 1024;
-const BYTES_PER_MB = BYTES_PER_KB * BYTES_PER_KB;
-const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * BYTES_PER_MB;
-
-interface DraftInfo {
-  fileName?: string;
-  id: string;
-  inputMode: "text" | "pdf";
-  name: string;
-  resumeText?: string;
-}
+import { type DraftInfo, FormPhase } from "./form-phase";
 
 export default function NewTalentPage() {
   const router = useRouter();
@@ -70,210 +50,19 @@ export default function NewTalentPage() {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 1 -- Form
+// Phase 2 -- Extraction + edit keywords + match
 // ---------------------------------------------------------------------------
 
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      const base64 = result.split(",")[1] ?? result;
-      resolve(base64);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-function FormPhase({ onCreated }: { onCreated: (draft: DraftInfo) => void }) {
-  const createDraft = useCreateDraftTalent();
-  const [inputMode, setInputMode] = useState<"text" | "pdf">("text");
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const form = useForm({
-    defaultValues: {
-      name: "",
-      resumeText: "",
-      resumeFile: null as File | null,
-    },
-    onSubmit: async ({ value }) => {
-      let resumeText: string | undefined;
-      let resumePdfBase64: string | undefined;
-
-      if (inputMode === "pdf" && value.resumeFile) {
-        resumePdfBase64 = await fileToBase64(value.resumeFile);
-      } else {
-        resumeText = value.resumeText;
-      }
-
-      const result = await createDraft.mutateAsync({
-        name: value.name,
-        resumeText,
-        resumePdfBase64,
-        recruiterId: SEED_RECRUITER_ID,
-      });
-
-      window.history.replaceState(null, "", `/talents/new?id=${result.id}`);
-      onCreated({
-        id: result.id,
-        name: value.name,
-        inputMode,
-        resumeText: inputMode === "text" ? value.resumeText : undefined,
-        fileName: value.resumeFile?.name,
-      });
-    },
-  });
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <PageHeader title="New Talent" />
-      <ScrollArea className="min-h-0 flex-1">
-        <div className="mx-auto max-w-lg p-6">
-          <p className="mb-6 text-muted-foreground text-sm">
-            Upload a resume and we'll extract skills, experience, and match
-            against open positions automatically.
-          </p>
-
-          <form
-            className="flex flex-col gap-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              form.handleSubmit();
-            }}
-          >
-            <form.Field
-              name="name"
-              validators={{
-                onSubmit: ({ value }) =>
-                  value.trim() ? undefined : "Full name is required",
-              }}
-            >
-              {(field) => (
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="talent-name">Full name</Label>
-                  <Input
-                    id="talent-name"
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    placeholder="e.g. Alex Chen"
-                    value={field.state.value}
-                  />
-                  {field.state.meta.errors.length > 0 && (
-                    <p className="text-destructive text-xs">
-                      {field.state.meta.errors[0]}
-                    </p>
-                  )}
-                </div>
-              )}
-            </form.Field>
-
-            <div className="flex flex-col gap-2">
-              <Label>Resume / CV</Label>
-              <Tabs
-                onValueChange={(v) => setInputMode(v as "text" | "pdf")}
-                value={inputMode}
-              >
-                <TabsList className="w-full">
-                  <TabsTrigger value="text">
-                    <FileTextIcon className="size-3.5" />
-                    Paste Text
-                  </TabsTrigger>
-                  <TabsTrigger value="pdf">
-                    <UploadIcon className="size-3.5" />
-                    Upload PDF
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="text">
-                  <form.Field
-                    name="resumeText"
-                    validators={{
-                      onSubmit: ({ value }) =>
-                        inputMode === "text" && !value.trim()
-                          ? "Resume text is required"
-                          : undefined,
-                    }}
-                  >
-                    {(field) => (
-                      <div className="flex flex-col gap-2">
-                        <Textarea
-                          className="min-h-48 resize-none text-sm leading-relaxed"
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                          placeholder="Paste the resume text here..."
-                          value={field.state.value}
-                        />
-                        {field.state.meta.errors.length > 0 && (
-                          <p className="text-destructive text-xs">
-                            {field.state.meta.errors[0]}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </form.Field>
-                </TabsContent>
-
-                <TabsContent value="pdf">
-                  <form.Field
-                    name="resumeFile"
-                    validators={{
-                      onSubmit: ({ value }) =>
-                        inputMode === "pdf" && !value
-                          ? "Please select a PDF file"
-                          : undefined,
-                    }}
-                  >
-                    {(field) => (
-                      <ResumeFileInput
-                        error={
-                          field.state.meta.errors.length > 0
-                            ? String(field.state.meta.errors[0])
-                            : undefined
-                        }
-                        file={field.state.value}
-                        fileInputRef={fileInputRef}
-                        onFileChange={(file) => field.handleChange(file)}
-                      />
-                    )}
-                  </form.Field>
-                </TabsContent>
-              </Tabs>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <form.Subscribe
-                selector={(state) => [state.canSubmit, state.isSubmitting]}
-              >
-                {([canSubmit, isSubmitting]) => (
-                  <Button disabled={!canSubmit} type="submit">
-                    {isSubmitting ? (
-                      "Creating..."
-                    ) : (
-                      <>
-                        Submit & Extract
-                        <ArrowRightIcon className="ml-1 size-4" />
-                      </>
-                    )}
-                  </Button>
-                )}
-              </form.Subscribe>
-            </div>
-          </form>
-        </div>
-      </ScrollArea>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Phase 2 -- Extraction + live preview
-// ---------------------------------------------------------------------------
+type RightPanelPhase = "streaming" | "editing" | "matching" | "matched";
 
 function ExtractionPhase({ draft }: { draft: DraftInfo }) {
   const stream = useExtractTalentStream(draft.id);
   const started = useRef(false);
+  const [phase, setPhase] = useState<RightPanelPhase>("streaming");
+  const [keywords, setKeywords] = useState<readonly string[]>([]);
+  const [matches, setMatches] = useState<readonly Match[]>([]);
+  const [matchError, setMatchError] = useState<string | null>(null);
+  const confirmKeywords = useConfirmKeywords(draft.id);
 
   useEffect(() => {
     if (!started.current) {
@@ -283,16 +72,44 @@ function ExtractionPhase({ draft }: { draft: DraftInfo }) {
   }, [stream.mutate]);
 
   const extraction = stream.data;
-  const streamDone = !stream.isStreaming && stream.data != null;
+
+  // streaming -> editing when stream completes
+  useEffect(() => {
+    if (!stream.isStreaming && stream.data && phase === "streaming") {
+      setPhase("editing");
+      setKeywords(stream.data.keywords ?? []);
+    }
+  }, [stream.isStreaming, stream.data, phase]);
+
+  async function handleMatch() {
+    setPhase("matching");
+    setMatchError(null);
+    try {
+      await confirmKeywords.mutateAsync([...keywords]);
+      const results = await fetchMatchesForTalent(draft.id);
+      setMatches(results);
+      setPhase("matched");
+    } catch (err) {
+      setMatchError(err instanceof Error ? err.message : String(err));
+      setPhase("editing");
+    }
+  }
+
+  const pipelineStatusMap: Record<
+    RightPanelPhase,
+    "extracting" | "reviewing" | "matched"
+  > = {
+    streaming: "extracting",
+    editing: "reviewing",
+    matching: "reviewing",
+    matched: "matched",
+  };
+  const pipelineStatus = pipelineStatusMap[phase];
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <PageHeader
-        action={
-          <TalentPipelineSteps
-            status={streamDone ? "extracting" : "uploaded"}
-          />
-        }
+        action={<TalentPipelineSteps status={pipelineStatus} />}
         title={extraction?.name ?? draft.name}
       />
 
@@ -306,14 +123,19 @@ function ExtractionPhase({ draft }: { draft: DraftInfo }) {
           </ScrollArea>
         </div>
 
-        {/* Right panel -- streaming extraction */}
+        {/* Right panel */}
         <div className="flex min-h-0 flex-1 flex-col">
-          <StreamingExtractionPanel
+          <RightPanel
             draft={draft}
-            error={stream.error}
             extraction={extraction}
+            handleMatch={handleMatch}
             isStreaming={stream.isStreaming}
-            streamDone={streamDone}
+            keywords={keywords}
+            matchError={matchError}
+            matches={matches}
+            phase={phase}
+            setKeywords={setKeywords}
+            streamError={stream.error}
           />
         </div>
       </div>
@@ -366,7 +188,7 @@ function SubmittedDataPanel({ draft }: { draft: DraftInfo }) {
 }
 
 // ---------------------------------------------------------------------------
-// Right panel -- streaming extraction results
+// Right panel -- phases: streaming -> editing -> matching -> matched
 // ---------------------------------------------------------------------------
 
 interface StreamingExtraction {
@@ -374,34 +196,41 @@ interface StreamingExtraction {
   keywords?: readonly string[];
   location?: string;
   name?: string;
-  skills?: readonly string[];
   title?: string;
   willingToRelocate?: boolean;
   workModes?: readonly string[];
 }
 
-function StreamingExtractionPanel({
+function RightPanel({
+  phase,
   extraction,
   isStreaming,
-  streamDone,
-  error,
+  streamError,
   draft,
+  keywords,
+  setKeywords,
+  handleMatch,
+  matchError,
+  matches,
 }: {
+  phase: RightPanelPhase;
   extraction: StreamingExtraction | null;
   isStreaming: boolean;
-  streamDone: boolean;
-  error: Error | null;
+  streamError: Error | null;
   draft: DraftInfo;
+  keywords: readonly string[];
+  setKeywords: (fn: (prev: readonly string[]) => readonly string[]) => void;
+  handleMatch: () => void;
+  matchError: string | null;
+  matches: readonly Match[];
 }) {
-  const router = useRouter();
-
-  const showMetaSkeleton =
-    isStreaming && !extraction?.location && !extraction?.workModes;
-  const showSkillsSkeleton =
-    isStreaming &&
-    (!extraction?.skills || extraction.skills.length === 0) &&
-    !extraction?.experienceYears;
-  const showTitleSkeleton = isStreaming && !extraction?.title;
+  const headerTextMap: Record<RightPanelPhase, string> = {
+    streaming: "Analyzing resume to extract keywords and experience",
+    editing: "Review keywords, add or remove, then match.",
+    matching: "Finding matching jobs...",
+    matched: "Profile and matching jobs ranked by fit.",
+  };
+  const headerText = headerTextMap[phase];
 
   return (
     <>
@@ -409,11 +238,7 @@ function StreamingExtractionPanel({
       <div className="flex items-start justify-between gap-4 border-b px-5 py-4">
         <div className="flex flex-col gap-1">
           <h3 className="font-semibold text-base">Extracted Profile</h3>
-          <p className="text-muted-foreground text-sm">
-            {streamDone
-              ? "Extraction complete — review the profile below"
-              : "Analyzing resume to extract skills and experience"}
-          </p>
+          <p className="text-muted-foreground text-sm">{headerText}</p>
         </div>
         {isStreaming && (
           <div className="flex items-center gap-1.5">
@@ -421,106 +246,74 @@ function StreamingExtractionPanel({
             <span className="text-muted-foreground text-xs">Extracting...</span>
           </div>
         )}
+        {phase === "editing" && (
+          <Badge variant="outline">{keywords.length} keywords</Badge>
+        )}
+        {phase === "matched" && (
+          <Badge variant="secondary">{matches.length} matches</Badge>
+        )}
       </div>
 
       {/* Scrollable content */}
       <ScrollArea className="min-h-0 flex-1">
         <div className="flex flex-col gap-5 p-5">
-          {error && <p className="text-destructive text-sm">{error.message}</p>}
+          {streamError && (
+            <p className="text-destructive text-sm">{streamError.message}</p>
+          )}
+          {matchError && (
+            <p className="text-destructive text-sm">{matchError}</p>
+          )}
 
-          {/* Name + Title */}
-          <div className="flex flex-col gap-1">
-            <h2 className="font-semibold text-lg leading-tight">
-              {extraction?.name ?? draft.name}
-            </h2>
-            {showTitleSkeleton ? (
-              <Skeleton className="h-4 w-40" />
-            ) : (
-              extraction?.title && (
-                <p className="text-muted-foreground text-sm">
-                  {extraction.title}
+          {/* Profile summary */}
+          <ProfileSummary
+            draft={draft}
+            extraction={extraction}
+            isStreaming={isStreaming}
+          />
+
+          {/* Streaming: keyword skeletons */}
+          {phase === "streaming" && (
+            <StreamingKeywords
+              extraction={extraction}
+              isStreaming={isStreaming}
+            />
+          )}
+
+          {/* Editing: editable keywords + match button */}
+          {phase === "editing" && (
+            <EditableKeywords
+              keywords={keywords}
+              onMatch={handleMatch}
+              setKeywords={setKeywords}
+            />
+          )}
+
+          {/* Matching: skeleton cards */}
+          {phase === "matching" && (
+            <div className="flex flex-col gap-3">
+              <MatchCardSkeleton />
+              <MatchCardSkeleton />
+              <MatchCardSkeleton />
+            </div>
+          )}
+
+          {/* Matched: real cards */}
+          {phase === "matched" &&
+            (matches.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
+                <p className="text-sm">No matching jobs found.</p>
+                <p className="text-xs">
+                  Try adding more keywords or check back when new positions are
+                  posted.
                 </p>
-              )
-            )}
-          </div>
-
-          {/* Meta tags */}
-          {showMetaSkeleton ? (
-            <div className="flex flex-wrap items-center gap-3">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-4 w-16" />
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              {extraction?.location && (
-                <span className="inline-flex items-center gap-1 text-muted-foreground">
-                  <MapPinIcon className="size-3.5" />
-                  {extraction.location}
-                </span>
-              )}
-              {extraction?.workModes && extraction.workModes.length > 0 && (
-                <span className="inline-flex items-center gap-1 text-muted-foreground">
-                  <MonitorIcon className="size-3.5" />
-                  {extraction.workModes.join(" / ")}
-                </span>
-              )}
-              {extraction?.experienceYears != null && (
-                <span className="inline-flex items-center gap-1 text-muted-foreground">
-                  <UserIcon className="size-3.5" />
-                  {extraction.experienceYears} yrs exp
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Skills */}
-          {showSkillsSkeleton ? (
-            <div className="flex flex-wrap gap-1.5">
-              <Skeleton className="h-5 w-14 rounded-full" />
-              <Skeleton className="h-5 w-20 rounded-full" />
-              <Skeleton className="h-5 w-16 rounded-full" />
-              <Skeleton className="h-5 w-24 rounded-full" />
-              <Skeleton className="h-5 w-12 rounded-full" />
-            </div>
-          ) : (
-            extraction?.skills &&
-            extraction.skills.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {extraction.skills.map((s) => (
-                  <Badge key={s} variant="secondary">
-                    {s}
-                  </Badge>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {matches.map((match, i) => (
+                  <JobMatchCard key={match.id} match={match} rank={i + 1} />
                 ))}
               </div>
-            )
-          )}
-
-          {/* Keywords */}
-          {extraction?.keywords && extraction.keywords.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <span className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
-                Keywords
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {extraction.keywords.map((kw) => (
-                  <Badge key={kw} variant="outline">
-                    {kw}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Navigate to detail when done */}
-          {streamDone && !error && (
-            <div className="flex justify-end pt-2">
-              <Button onClick={() => router.push(`/talents/${draft.id}`)}>
-                Review Skills
-                <ArrowRightIcon className="ml-1 size-4" />
-              </Button>
-            </div>
-          )}
+            ))}
         </div>
       </ScrollArea>
     </>
@@ -528,140 +321,205 @@ function StreamingExtractionPanel({
 }
 
 // ---------------------------------------------------------------------------
-// PDF file input with drag-and-drop zone
+// Profile summary (name, title, meta tags)
 // ---------------------------------------------------------------------------
 
-function ResumeFileInput({
-  file,
-  onFileChange,
-  fileInputRef,
-  error,
+function ProfileSummary({
+  extraction,
+  isStreaming,
+  draft,
 }: {
-  file: File | null;
-  onFileChange: (file: File | null) => void;
-  fileInputRef: { current: HTMLInputElement | null };
-  error?: string;
+  extraction: StreamingExtraction | null;
+  isStreaming: boolean;
+  draft: DraftInfo;
 }) {
-  const [dragOver, setDragOver] = useState(false);
-  const [fileError, setFileError] = useState<string>();
+  const showTitleSkeleton = isStreaming && !extraction?.title;
+  const showMetaSkeleton =
+    isStreaming && !extraction?.location && !extraction?.workModes;
 
-  function validateAndSet(f: File) {
-    setFileError(undefined);
-    if (f.type !== "application/pdf") {
-      setFileError("Only PDF files are accepted");
-      return;
-    }
-    if (f.size > MAX_FILE_SIZE_BYTES) {
-      setFileError(`File must be under ${MAX_FILE_SIZE_MB}MB`);
-      return;
-    }
-    onFileChange(f);
-  }
+  return (
+    <>
+      <div className="flex flex-col gap-1">
+        <h2 className="font-semibold text-lg leading-tight">
+          {extraction?.name ?? draft.name}
+        </h2>
+        {showTitleSkeleton ? (
+          <Skeleton className="h-4 w-40" />
+        ) : (
+          extraction?.title && (
+            <p className="text-muted-foreground text-sm">{extraction.title}</p>
+          )
+        )}
+      </div>
 
-  function handleDrop(e: {
-    preventDefault: () => void;
-    dataTransfer: DataTransfer;
-  }) {
-    e.preventDefault();
-    setDragOver(false);
-    const f = e.dataTransfer.files[0];
-    if (f) {
-      validateAndSet(f);
-    }
-  }
-
-  function handleFileInput(e: { target: { files: FileList | null } }) {
-    const f = e.target.files?.[0];
-    if (f) {
-      validateAndSet(f);
-    }
-  }
-
-  function handleRemove() {
-    onFileChange(null);
-    setFileError(undefined);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  }
-
-  const displayError = fileError ?? error;
-
-  if (file) {
-    return (
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
-          <FileTextIcon className="size-5 shrink-0 text-muted-foreground" />
-          <div className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate font-medium text-sm">{file.name}</span>
-            <span className="text-muted-foreground text-xs">
-              {formatFileSize(file.size)}
-            </span>
-          </div>
-          <button
-            aria-label="Remove file"
-            className="rounded-full p-1 hover:bg-muted"
-            onClick={handleRemove}
-            type="button"
-          >
-            <XIcon className="size-4 text-muted-foreground" />
-          </button>
+      {showMetaSkeleton ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-4 w-16" />
         </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          {extraction?.location && (
+            <span className="inline-flex items-center gap-1 text-muted-foreground">
+              <MapPinIcon className="size-3.5" />
+              {extraction.location}
+            </span>
+          )}
+          {extraction?.workModes && extraction.workModes.length > 0 && (
+            <span className="inline-flex items-center gap-1 text-muted-foreground">
+              <MonitorIcon className="size-3.5" />
+              {extraction.workModes.join(" / ")}
+            </span>
+          )}
+          {extraction?.experienceYears != null && (
+            <span className="inline-flex items-center gap-1 text-muted-foreground">
+              <UserIcon className="size-3.5" />
+              {extraction.experienceYears} yrs exp
+            </span>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Streaming keywords (read-only badges + skeletons)
+// ---------------------------------------------------------------------------
+
+function StreamingKeywords({
+  extraction,
+  isStreaming,
+}: {
+  extraction: StreamingExtraction | null;
+  isStreaming: boolean;
+}) {
+  const showSkeleton =
+    isStreaming &&
+    (!extraction?.keywords || extraction.keywords.length === 0) &&
+    !extraction?.experienceYears;
+
+  if (showSkeleton) {
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        <Skeleton className="h-5 w-14 rounded-full" />
+        <Skeleton className="h-5 w-20 rounded-full" />
+        <Skeleton className="h-5 w-16 rounded-full" />
+        <Skeleton className="h-5 w-24 rounded-full" />
+        <Skeleton className="h-5 w-12 rounded-full" />
       </div>
     );
   }
 
+  if (!extraction?.keywords || extraction.keywords.length === 0) {
+    return null;
+  }
+
   return (
     <div className="flex flex-col gap-2">
-      <button
-        className={`flex min-h-48 flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-6 transition-colors ${
-          dragOver
-            ? "border-primary bg-primary/5"
-            : "border-muted-foreground/25 hover:border-muted-foreground/40"
-        }`}
-        onClick={() => fileInputRef.current?.click()}
-        onDragLeave={() => setDragOver(false)}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragOver(true);
-        }}
-        onDrop={handleDrop}
-        type="button"
-      >
-        <div className="flex size-10 items-center justify-center rounded-full bg-muted">
-          <UploadIcon className="size-5 text-muted-foreground" />
-        </div>
-        <div className="flex flex-col items-center gap-1 text-center">
-          <span className="font-medium text-sm">
-            Drop your PDF here or click to browse
-          </span>
-          <span className="text-muted-foreground text-xs">
-            PDF only, up to {MAX_FILE_SIZE_MB}MB
-          </span>
-        </div>
-      </button>
-      <input
-        accept="application/pdf"
-        className="hidden"
-        onChange={handleFileInput}
-        ref={fileInputRef}
-        type="file"
-      />
-      {displayError && (
-        <p className="text-destructive text-xs">{displayError}</p>
-      )}
+      <span className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
+        Keywords
+      </span>
+      <div className="flex flex-wrap gap-1.5">
+        {extraction.keywords.map((kw) => (
+          <Badge key={kw} variant="secondary">
+            {kw}
+          </Badge>
+        ))}
+      </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
+// Editable keywords + match button
+// ---------------------------------------------------------------------------
 
-const KB = BYTES_PER_KB;
-const MB = BYTES_PER_MB;
+function EditableKeywords({
+  keywords,
+  setKeywords,
+  onMatch,
+}: {
+  keywords: readonly string[];
+  setKeywords: (fn: (prev: readonly string[]) => readonly string[]) => void;
+  onMatch: () => void;
+}) {
+  const [newKeyword, setNewKeyword] = useState("");
 
-function formatFileSize(bytes: number): string {
-  if (bytes >= MB) {
-    return `${(bytes / MB).toFixed(1)} MB`;
+  function handleRemove(keyword: string) {
+    setKeywords((prev) => prev.filter((k) => k !== keyword));
   }
-  return `${Math.round(bytes / KB)} KB`;
+
+  function handleAdd() {
+    const trimmed = newKeyword.trim();
+    if (trimmed && !keywords.includes(trimmed)) {
+      setKeywords((prev) => [...prev, trimmed]);
+      setNewKeyword("");
+    }
+  }
+
+  function handleKeyDown(e: { key: string; preventDefault: () => void }) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAdd();
+    }
+  }
+
+  return (
+    <>
+      {/* Editable keyword badges */}
+      <div className="flex flex-col gap-3">
+        <span className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
+          Keywords
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {keywords.map((keyword) => (
+            <Badge className="gap-1.5 pr-1.5" key={keyword} variant="secondary">
+              {keyword}
+              <button
+                aria-label={`Remove ${keyword}`}
+                className="rounded-full p-0.5 hover:bg-muted-foreground/20"
+                onClick={() => handleRemove(keyword)}
+                type="button"
+              >
+                <XIcon className="size-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      </div>
+
+      {/* Add new keyword */}
+      <div className="flex flex-col gap-2">
+        <span className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
+          Add Keyword
+        </span>
+        <div className="flex gap-2">
+          <Input
+            onChange={(e) => setNewKeyword(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Type a keyword and press Enter..."
+            value={newKeyword}
+          />
+          <Button
+            disabled={!newKeyword.trim()}
+            onClick={handleAdd}
+            size="sm"
+            variant="outline"
+          >
+            <PlusIcon className="size-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Match button */}
+      <div className="flex justify-end pt-2">
+        <Button onClick={onMatch}>
+          Match
+          <ArrowRightIcon className="ml-1 size-4" />
+        </Button>
+      </div>
+    </>
+  );
 }

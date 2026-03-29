@@ -17,6 +17,7 @@
     "@workspace/core": "workspace:*",
     "@workspace/db": "workspace:*",
     "@workspace/ai": "workspace:*",
+    "@workspace/vector": "workspace:*",
     "effect": "catalog:"
   },
   "devDependencies": {
