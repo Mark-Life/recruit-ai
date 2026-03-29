@@ -24,7 +24,8 @@ export class TalentRepository extends Context.Tag("@recruit/TalentRepository")<
     ) => Effect.Effect<void, TalentNotFoundError>;
     readonly update: (
       id: TalentId,
-      data: Partial<Omit<Talent, "id" | "recruiterId">>
+      data: Partial<Omit<Talent, "id" | "recruiterId">>,
+      embedding?: readonly number[]
     ) => Effect.Effect<Talent, TalentNotFoundError>;
   }
 >() {}

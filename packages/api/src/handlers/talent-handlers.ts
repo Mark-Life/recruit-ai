@@ -1,5 +1,5 @@
 import { HttpApiBuilder } from "@effect/platform";
-import type { TalentId } from "@workspace/core/domain/models/ids";
+import type { RecruiterId, TalentId } from "@workspace/core/domain/models/ids";
 import { TalentOrchestrationService } from "@workspace/core/services/talent-orchestration-service";
 import { TalentQueryService } from "@workspace/core/services/talent-query-service";
 import { Effect } from "effect";
@@ -43,6 +43,17 @@ export const TalentsGroupLive = HttpApiBuilder.group(
         Effect.gen(function* () {
           const query = yield* TalentQueryService;
           return yield* query.getMatches(path.id as TalentId);
+        })
+      )
+      .handle("createDraft", ({ payload }) =>
+        Effect.gen(function* () {
+          const orchestration = yield* TalentOrchestrationService;
+          return yield* orchestration.createDraft({
+            name: payload.name,
+            resumeText: payload.resumeText,
+            resumePdfBase64: payload.resumePdfBase64,
+            recruiterId: payload.recruiterId as RecruiterId,
+          });
         })
       )
 );

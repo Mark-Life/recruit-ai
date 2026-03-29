@@ -58,6 +58,13 @@ export class JobsGroup extends HttpApiGroup.make("jobs")
 
 const TalentIdPath = Schema.Struct({ id: Schema.String });
 
+const CreateDraftTalentPayload = Schema.Struct({
+  name: Schema.String,
+  resumeText: Schema.optional(Schema.String),
+  resumePdfBase64: Schema.optional(Schema.String),
+  recruiterId: Schema.String,
+});
+
 const ConfirmSkillsPayload = Schema.Struct({
   skills: Schema.Array(Schema.String),
 });
@@ -82,6 +89,11 @@ export class TalentsGroup extends HttpApiGroup.make("talents")
       .setPath(TalentIdPath)
       .addSuccess(Schema.Array(Match))
       .addError(Schema.String, { status: 404 })
+  )
+  .add(
+    HttpApiEndpoint.post("createDraft", "/")
+      .setPayload(CreateDraftTalentPayload)
+      .addSuccess(Talent)
   )
   .prefix("/api/talents") {}
 

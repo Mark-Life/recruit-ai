@@ -1,12 +1,25 @@
 "use client";
 
+import { Button } from "@workspace/ui/components/button";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
+import { PlusIcon } from "lucide-react";
+import Link from "next/link";
 import { Suspense } from "react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { PageHeader } from "@/components/page-header";
 import { useTalents } from "@/lib/api";
-import { NewTalentDialog } from "./new-talent-dialog";
 import { TalentCard } from "./talent-card";
+
+function NewTalentButton() {
+  return (
+    <Button asChild size="sm">
+      <Link href="/talents/new">
+        <PlusIcon className="size-4" />
+        New Talent
+      </Link>
+    </Button>
+  );
+}
 
 function TalentList() {
   const { data: talents } = useTalents();
@@ -15,7 +28,7 @@ function TalentList() {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
         <p className="text-sm">No talents yet.</p>
-        <NewTalentDialog />
+        <NewTalentButton />
       </div>
     );
   }
@@ -32,7 +45,7 @@ function TalentList() {
 export default function TalentsPage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageHeader action={<NewTalentDialog />} title="Talent Pool" />
+      <PageHeader action={<NewTalentButton />} title="Talent Pool" />
       <ScrollArea className="min-h-0 flex-1">
         <div className="p-4">
           <Suspense fallback={<LoadingSpinner label="Loading talents..." />}>

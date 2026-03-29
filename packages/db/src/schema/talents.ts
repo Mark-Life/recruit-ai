@@ -24,6 +24,8 @@ export const talents = pgTable(
     recruiterId: text("recruiter_id")
       .notNull()
       .references(() => recruiters.id),
+    resumeText: text("resume_text"),
+    resumePdfBase64: text("resume_pdf_base64"),
     status: text("status").notNull().default("uploaded"),
     createdAt: text("created_at").notNull(),
     embedding: vector("embedding", { dimensions: EMBEDDING_DIMENSIONS }),

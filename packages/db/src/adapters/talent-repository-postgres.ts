@@ -21,7 +21,9 @@ type TalentInput = {
     ? readonly string[]
     : K extends "status"
       ? string
-      : Schema.Schema.Encoded<typeof Talent>[K];
+      : K extends "resumeText" | "resumePdfBase64"
+        ? string | null
+        : Schema.Schema.Encoded<typeof Talent>[K];
 };
 
 const toInput = (row: TalentRow): TalentInput => ({
@@ -34,6 +36,8 @@ const toInput = (row: TalentRow): TalentInput => ({
   location: row.location,
   workModes: row.workModes,
   willingToRelocate: row.willingToRelocate,
+  resumeText: row.resumeText,
+  resumePdfBase64: row.resumePdfBase64,
   recruiterId: row.recruiterId,
   status: row.status,
   createdAt: row.createdAt,
@@ -60,6 +64,8 @@ export const TalentRepositoryPostgresLayer = Layer.effect(
             location: talent.location,
             workModes: [...talent.workModes],
             willingToRelocate: talent.willingToRelocate,
+            resumeText: talent.resumeText ?? null,
+            resumePdfBase64: talent.resumePdfBase64 ?? null,
             recruiterId: talent.recruiterId,
             status: talent.status,
             createdAt: talent.createdAt,
@@ -115,11 +121,14 @@ export const TalentRepositoryPostgresLayer = Layer.effect(
           }
         }),
 
-      update: (id, data) =>
+      update: (id, data, embedding) =>
         Effect.gen(function* () {
           const setData: Record<string, unknown> = {};
           for (const [key, value] of Object.entries(data)) {
             setData[key] = Array.isArray(value) ? [...value] : value;
+          }
+          if (embedding) {
+            setData.embedding = [...embedding];
           }
           const result = yield* Effect.promise(() =>
             db

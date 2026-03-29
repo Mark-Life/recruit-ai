@@ -22,6 +22,8 @@ export class Talent extends Schema.Class<Talent>("Talent")({
   location: Schema.String,
   workModes: Schema.Array(WorkMode),
   willingToRelocate: Schema.Boolean,
+  resumeText: Schema.optionalWith(Schema.String, { nullable: true }),
+  resumePdfBase64: Schema.optionalWith(Schema.String, { nullable: true }),
   recruiterId: RecruiterId,
   status: TalentStatus,
   createdAt: Schema.String,

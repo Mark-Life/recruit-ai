@@ -15,9 +15,12 @@ import {
   ArrowRightIcon,
   CheckIcon,
   CpuIcon,
+  MapPinIcon,
+  MonitorIcon,
   PencilIcon,
   PlusIcon,
   SparklesIcon,
+  UserIcon,
   XIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -93,6 +96,62 @@ function RightPanel({ talent }: { talent: Talent }) {
     default:
       return <ExtractingPanel />;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Extracted profile summary — shared across reviewing/matched panels
+// ---------------------------------------------------------------------------
+
+function ExtractedProfileSection({ talent }: { talent: Talent }) {
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Name + Title */}
+      <div className="flex flex-col gap-1">
+        <h2 className="font-semibold text-lg leading-tight">{talent.name}</h2>
+        {talent.title && (
+          <p className="text-muted-foreground text-sm">{talent.title}</p>
+        )}
+      </div>
+
+      {/* Meta tags */}
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        {talent.location && (
+          <span className="inline-flex items-center gap-1 text-muted-foreground">
+            <MapPinIcon className="size-3.5" />
+            {talent.location}
+          </span>
+        )}
+        {talent.workModes.length > 0 && (
+          <span className="inline-flex items-center gap-1 text-muted-foreground">
+            <MonitorIcon className="size-3.5" />
+            {talent.workModes.join(" / ")}
+          </span>
+        )}
+        {talent.experienceYears > 0 && (
+          <span className="inline-flex items-center gap-1 text-muted-foreground">
+            <UserIcon className="size-3.5" />
+            {talent.experienceYears} yrs exp
+          </span>
+        )}
+      </div>
+
+      {/* Keywords */}
+      {talent.keywords.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <span className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
+            Keywords
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {talent.keywords.map((kw) => (
+              <Badge key={kw} variant="outline">
+                {kw}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -199,7 +258,7 @@ function AnalysisStep({
 }
 
 // ---------------------------------------------------------------------------
-// Reviewing — edit extracted skills
+// Reviewing — extracted profile + editable skills
 // ---------------------------------------------------------------------------
 
 function ReviewingPanel({ talent }: { talent: Talent }) {
@@ -240,10 +299,9 @@ function ReviewingPanel({ talent }: { talent: Talent }) {
       {/* Pinned header */}
       <div className="flex items-start justify-between gap-4 border-b px-5 py-4">
         <div className="flex flex-col gap-1">
-          <h3 className="font-semibold text-base">Review Extracted Skills</h3>
+          <h3 className="font-semibold text-base">Extracted Profile</h3>
           <p className="text-muted-foreground text-sm">
-            Verify and adjust the skills extracted from the resume. Remove
-            incorrect ones or add missing skills.
+            Review the extracted profile and adjust skills before matching.
           </p>
         </div>
         <Badge variant="outline">
@@ -255,10 +313,12 @@ function ReviewingPanel({ talent }: { talent: Talent }) {
       {/* Scrollable content */}
       <ScrollArea className="min-h-0 flex-1">
         <div className="flex flex-col gap-5 p-5">
-          {/* Current skills */}
+          <ExtractedProfileSection talent={talent} />
+
+          {/* Editable skills */}
           <div className="flex flex-col gap-3">
             <span className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
-              Extracted Skills
+              Skills
             </span>
             <div className="flex flex-wrap gap-2">
               {skills.map((skill) => (
@@ -304,22 +364,6 @@ function ReviewingPanel({ talent }: { talent: Talent }) {
             </div>
           </div>
 
-          {/* Keywords */}
-          {talent.keywords.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <span className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
-                Keywords
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {talent.keywords.map((kw) => (
-                  <Badge key={kw} variant="outline">
-                    {kw}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div className="flex justify-end pt-2">
             <Button disabled={confirmSkills.isPending} onClick={handleConfirm}>
               {confirmSkills.isPending ? (
@@ -358,18 +402,36 @@ function MatchedPanelContent({ talent }: { talent: Talent }) {
       {/* Pinned header */}
       <div className="flex items-start justify-between gap-4 border-b px-5 py-4">
         <div className="flex flex-col gap-1">
-          <h3 className="font-semibold text-base">Matching Jobs</h3>
+          <h3 className="font-semibold text-base">Extracted Profile</h3>
           <p className="text-muted-foreground text-sm">
-            Open positions ranked by fit against this talent's skills and
-            experience.
+            Profile and matching jobs ranked by fit.
           </p>
         </div>
-        <Badge variant="secondary">{matchList.length} found</Badge>
+        <Badge variant="secondary">{matchList.length} matches</Badge>
       </div>
 
       {/* Scrollable list */}
       <ScrollArea className="min-h-0 flex-1">
-        <div className="p-5">
+        <div className="flex flex-col gap-5 p-5">
+          <ExtractedProfileSection talent={talent} />
+
+          {/* Skills (read-only) */}
+          {talent.skills.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <span className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
+                Skills
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {talent.skills.map((s) => (
+                  <Badge key={s} variant="secondary">
+                    {s}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Matches */}
           {matchList.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
               <p className="text-sm">No matching jobs found.</p>
