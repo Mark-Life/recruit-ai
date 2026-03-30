@@ -24,7 +24,7 @@ const TALENT = Talent.make({
   willingToRelocate: false,
   recruiterId: RecruiterId.make("ingest-rec-1"),
   status: "reviewing",
-  createdAt: "2026-01-01T00:00:00.000Z",
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
 });
 
 // ---------------------------------------------------------------------------

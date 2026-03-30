@@ -197,7 +197,7 @@ const buildRecruiters = () => {
 };
 
 const buildTalents = (resumes: ResumeRow[]) => {
-  const now = new Date().toISOString();
+  const nowDate = new Date();
   return resumes.map((row, i) => ({
     id: seedId("talent", i + 1),
     name: `Candidate ${i + 1}`,
@@ -210,12 +210,12 @@ const buildTalents = (resumes: ResumeRow[]) => {
     recruiterId: seedId("rec", (i % RECRUITER_COUNT) + 1),
     resumeText: row.Resume_str,
     status: "uploaded",
-    createdAt: now,
+    createdAt: nowDate,
   }));
 };
 
 const buildJobs = (jdRows: JdJsonRow[], mlRows: MlJobRow[]) => {
-  const now = new Date().toISOString();
+  const nowDate = new Date();
   const half = Math.ceil(TOTAL_JOBS / 2);
 
   const fromJd = jdRows.slice(0, half).map((row, i) => ({
@@ -233,7 +233,7 @@ const buildJobs = (jdRows: JdJsonRow[], mlRows: MlJobRow[]) => {
     experienceYearsMin: 0,
     experienceYearsMax: 0,
     status: "draft",
-    createdAt: now,
+    createdAt: nowDate,
   }));
 
   const offset = fromJd.length;
@@ -255,7 +255,7 @@ const buildJobs = (jdRows: JdJsonRow[], mlRows: MlJobRow[]) => {
       experienceYearsMin: 0,
       experienceYearsMax: 0,
       status: "draft",
-      createdAt: now,
+      createdAt: nowDate,
     }));
 
   return [...fromJd, ...fromMl];

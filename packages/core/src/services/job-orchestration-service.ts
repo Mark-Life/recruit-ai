@@ -137,7 +137,7 @@ export class JobOrchestrationService extends Context.Tag(
             experienceYearsMax: 0,
             status: "draft",
             questions: [],
-            createdAt: new Date().toISOString(),
+            createdAt: new Date(),
           } as StructuredJd),
 
         createJob: (params) =>
@@ -162,7 +162,7 @@ export class JobOrchestrationService extends Context.Tag(
                     organizationId: params.organizationId,
                     rawText: params.rawText,
                     status: "refining",
-                    createdAt: new Date().toISOString(),
+                    createdAt: new Date(),
                   } as StructuredJd);
 
                   return llm

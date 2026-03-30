@@ -48,7 +48,7 @@ const seniorReactDev = Talent.make({
   willingToRelocate: false,
   recruiterId: RecruiterId.make("rec-1"),
   status: "reviewing",
-  createdAt: "2026-01-01T00:00:00.000Z",
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
 });
 
 const juniorReactDev = Talent.make({
@@ -62,7 +62,7 @@ const juniorReactDev = Talent.make({
   willingToRelocate: true,
   recruiterId: RecruiterId.make("rec-1"),
   status: "reviewing",
-  createdAt: "2026-01-01T00:00:00.000Z",
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
 });
 
 const backendEngineer = Talent.make({
@@ -83,7 +83,7 @@ const backendEngineer = Talent.make({
   willingToRelocate: false,
   recruiterId: RecruiterId.make("rec-2"),
   status: "reviewing",
-  createdAt: "2026-01-01T00:00:00.000Z",
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
 });
 
 const reactJd = StructuredJd.make({
@@ -101,7 +101,7 @@ const reactJd = StructuredJd.make({
   experienceYearsMin: 4,
   experienceYearsMax: 8,
   status: "ready",
-  createdAt: "2026-01-01T00:00:00.000Z",
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
 });
 
 const buildStores = (

@@ -1,4 +1,11 @@
-import { boolean, index, integer, pgTable, text } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
 import { recruiters } from "./recruiters";
 
 export const talents = pgTable(
@@ -18,7 +25,7 @@ export const talents = pgTable(
     resumeText: text("resume_text"),
     resumePdfBase64: text("resume_pdf_base64"),
     status: text("status").notNull().default("uploaded"),
-    createdAt: text("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
   },
   (table) => [index("talents_recruiter_id_idx").on(table.recruiterId)]
 );

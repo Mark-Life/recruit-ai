@@ -147,7 +147,7 @@ export class TalentOrchestrationService extends Context.Tag(
               resumePdfBase64: params.resumePdfBase64,
               recruiterId: params.recruiterId,
               status: "uploaded",
-              createdAt: new Date().toISOString(),
+              createdAt: new Date(),
             })
           ),
 

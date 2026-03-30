@@ -2,8 +2,8 @@ const MS_PER_MINUTE = 60_000;
 const MINUTES_PER_HOUR = 60;
 const HOURS_PER_DAY = 24;
 
-export const formatRelativeDate = (iso: string): string => {
-  const diff = Date.now() - new Date(iso).getTime();
+export const formatRelativeDate = (date: string | Date): string => {
+  const diff = Date.now() - new Date(date).getTime();
   const minutes = Math.floor(diff / MS_PER_MINUTE);
   if (minutes < MINUTES_PER_HOUR) {
     return `${minutes}m ago`;

@@ -59,7 +59,7 @@ export const LlmAdapterGeminiLayer = Layer.effect(
                 organizationId: params.organizationId,
                 rawText: params.raw,
                 status: "draft",
-                createdAt: new Date().toISOString(),
+                createdAt: new Date(),
               })
             ),
             Effect.mapError(
