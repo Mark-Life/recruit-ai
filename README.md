@@ -252,12 +252,10 @@ bun dev
 
 ## Documentation
 
-
-| Document                                                                   | Description                                     |
-| -------------------------------------------------------------------------- | ----------------------------------------------- |
-| `[docs/plan/context.md](docs/plan/context.md)`                             | Project vision and domain context               |
-| `[docs/plan/plan.md](docs/plan/plan.md)`                                   | Implementation plan and phases                  |
-| `[docs/plan/matching-architecture.md](docs/plan/matching-architecture.md)` | Vector matching architecture (Qdrant migration) |
-| `[docs/plan/stories.md](docs/plan/stories.md)`                             | UX stories for the POC                          |
+- [docs/plan/context.md](docs/plan/context.md) — Project vision and domain context
+- [docs/plan/plan.md](docs/plan/plan.md) — Implementation plan and phases
+- [docs/plan/matching-architecture.md](docs/plan/matching-architecture.md) — Vector matching architecture (Qdrant migration)
+- [docs/plan/stories.md](docs/plan/stories.md) — UX stories for the POC
+- [docs/plan/evals.md](docs/plan/evals.md) — Evaluation plan: extraction, embedding, scoring
 
 
