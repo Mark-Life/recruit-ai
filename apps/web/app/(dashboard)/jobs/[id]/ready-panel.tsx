@@ -1,6 +1,12 @@
 "use client";
 
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@workspace/ui/components/alert";
 import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/button";
 import {
   Card,
   CardContent,
@@ -9,20 +15,49 @@ import {
 } from "@workspace/ui/components/card";
 import { Progress } from "@workspace/ui/components/progress";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import { Suspense } from "react";
+import { AlertCircleIcon } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import type { Job, Match, ScoreBreakdown } from "@/lib/api";
 import { useMatchesForJob } from "@/lib/api";
 
 /** Panel showing match results when a job is in "ready" state. */
 export const ReadyPanel = ({ job }: { job: Job }) => (
-  <Suspense fallback={<LoadingSpinner label="Loading matches..." />}>
-    <ReadyPanelContent job={job} />
-  </Suspense>
+  <ReadyPanelContent job={job} />
 );
 
 const ReadyPanelContent = ({ job }: { job: Job }) => {
-  const { data: matchList } = useMatchesForJob(job.id);
+  const {
+    data: matchList,
+    error,
+    isLoading,
+    refetch,
+  } = useMatchesForJob(job.id);
+
+  if (isLoading) {
+    return <LoadingSpinner label="Loading matches..." />;
+  }
+
+  if (error) {
+    return (
+      <div className="p-5">
+        <Alert variant="destructive">
+          <AlertCircleIcon />
+          <AlertTitle>Failed to load matches</AlertTitle>
+          <AlertDescription>
+            {error.message ||
+              "An unexpected error occurred while ranking candidates."}
+          </AlertDescription>
+        </Alert>
+        <div className="mt-3 flex justify-center">
+          <Button onClick={() => refetch()} size="sm" variant="outline">
+            Try again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const matches = matchList ?? [];
 
   return (
     <>
@@ -34,12 +69,12 @@ const ReadyPanelContent = ({ job }: { job: Job }) => {
             scores.
           </p>
         </div>
-        <Badge variant="secondary">{matchList.length} found</Badge>
+        <Badge variant="secondary">{matches.length} found</Badge>
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
         <div className="p-5">
-          {matchList.length === 0 ? (
+          {matches.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
               <p className="text-sm">No matches found.</p>
               <p className="text-xs">
@@ -49,7 +84,7 @@ const ReadyPanelContent = ({ job }: { job: Job }) => {
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {matchList.map((match, i) => (
+              {matches.map((match, i) => (
                 <MatchCard key={match.id} match={match} rank={i + 1} />
               ))}
             </div>

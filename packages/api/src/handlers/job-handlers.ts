@@ -30,7 +30,20 @@ export const JobsGroupLive = HttpApiBuilder.group(AppApi, "jobs", (handlers) =>
       Effect.gen(function* () {
         const query = yield* JobQueryService;
         return yield* query.getMatches(path.id as JobDescriptionId);
-      })
+      }).pipe(
+        Effect.catchTag("JobDescriptionNotFoundError", (e) =>
+          Effect.fail(`Job not found: ${e.jobDescriptionId}`)
+        ),
+        Effect.catchTag("VectorSearchError", (e) =>
+          Effect.fail(`Matching failed: ${e.message}`)
+        ),
+        Effect.catchTag("VectorNotFoundError", (e) =>
+          Effect.fail(`Vector not found: ${e.pointId} in ${e.collection}`)
+        ),
+        Effect.catchTag("TalentNotFoundError", (e) =>
+          Effect.fail(`Talent not found: ${e.talentId}`)
+        )
+      )
     )
     .handle("createDraft", ({ payload }) =>
       Effect.gen(function* () {

@@ -52,7 +52,20 @@ export const TalentsGroupLive = HttpApiBuilder.group(
         Effect.gen(function* () {
           const query = yield* TalentQueryService;
           return yield* query.getMatches(path.id as TalentId);
-        })
+        }).pipe(
+          Effect.catchTag("TalentNotFoundError", (e) =>
+            Effect.fail(`Talent not found: ${e.talentId}`)
+          ),
+          Effect.catchTag("VectorSearchError", (e) =>
+            Effect.fail(`Matching failed: ${e.message}`)
+          ),
+          Effect.catchTag("VectorNotFoundError", (e) =>
+            Effect.fail(`Vector not found: ${e.pointId} in ${e.collection}`)
+          ),
+          Effect.catchTag("JobDescriptionNotFoundError", (e) =>
+            Effect.fail(`Job not found: ${e.jobDescriptionId}`)
+          )
+        )
       )
       .handle("createDraft", ({ payload }) =>
         Effect.gen(function* () {

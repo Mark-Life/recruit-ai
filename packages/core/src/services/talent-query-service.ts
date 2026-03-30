@@ -4,6 +4,7 @@ import type { TalentId } from "../domain/models/ids";
 import type { Match } from "../domain/models/match";
 import type { Talent } from "../domain/models/talent";
 import { TalentRepository } from "../ports/talent-repository";
+import type { MatchError } from "./job-query-service";
 import { RankingService } from "./ranking-service";
 
 /** Read-only queries for talents and their matches. */
@@ -16,7 +17,9 @@ export class TalentQueryService extends Context.Tag(
     readonly getTalent: (
       id: TalentId
     ) => Effect.Effect<Talent, TalentNotFoundError>;
-    readonly getMatches: (id: TalentId) => Effect.Effect<readonly Match[]>;
+    readonly getMatches: (
+      id: TalentId
+    ) => Effect.Effect<readonly Match[], MatchError>;
   }
 >() {
   static readonly layer = Layer.effect(
@@ -28,12 +31,7 @@ export class TalentQueryService extends Context.Tag(
       return TalentQueryService.of({
         listTalents: () => talentRepo.findAll(),
         getTalent: (id) => talentRepo.findById(id),
-        getMatches: (id) =>
-          ranking
-            .rankJobsByTalent(id)
-            .pipe(
-              Effect.catchAll(() => Effect.succeed([] as readonly Match[]))
-            ),
+        getMatches: (id) => ranking.rankJobsByTalent(id),
       });
     })
   );
