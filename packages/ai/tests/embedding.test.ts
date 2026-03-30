@@ -42,7 +42,10 @@ const RESUME_C_TEXT = [
 // Helpers
 // ---------------------------------------------------------------------------
 
-function cosineSimilarity(a: readonly number[], b: readonly number[]): number {
+const cosineSimilarity = (
+  a: readonly number[],
+  b: readonly number[]
+): number => {
   let dot = 0;
   let normA = 0;
   let normB = 0;
@@ -54,7 +57,7 @@ function cosineSimilarity(a: readonly number[], b: readonly number[]): number {
     normB += bi * bi;
   }
   return dot / (Math.sqrt(normA) * Math.sqrt(normB));
-}
+};
 
 // ---------------------------------------------------------------------------
 // Tests — require GOOGLE_GENERATIVE_AI_API_KEY, skip otherwise
