@@ -1,19 +1,26 @@
 "use client";
 
 import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/button";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { PencilIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Talent } from "@/lib/api";
 import { useConfirmKeywords } from "@/lib/api";
 import { EditableKeywords } from "../editable-keywords";
 import { ProfileMeta } from "../profile-meta";
+import { EditTalentSheet } from "./edit-talent-sheet";
 
 /** Reviewing state — extracted profile with editable keywords */
 export const ReviewingPanel = ({ talent }: { talent: Talent }) => {
   const router = useRouter();
   const [keywords, setKeywords] = useState<readonly string[]>(talent.keywords);
+  const [editOpen, setEditOpen] = useState(false);
+
+  useEffect(() => {
+    setKeywords(talent.keywords);
+  }, [talent.keywords]);
   const confirmKeywords = useConfirmKeywords(talent.id);
 
   const handleConfirm = () => {
@@ -33,11 +40,23 @@ export const ReviewingPanel = ({ talent }: { talent: Talent }) => {
             Review the extracted profile and adjust keywords before matching.
           </p>
         </div>
-        <Badge variant="outline">
-          <PencilIcon className="mr-1 size-3" />
-          {keywords.length} keywords
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setEditOpen(true)}
+            size="icon-sm"
+            variant="ghost"
+          >
+            <PencilIcon className="size-3.5" />
+          </Button>
+          <Badge variant="outline">{keywords.length} keywords</Badge>
+        </div>
       </div>
+
+      <EditTalentSheet
+        onOpenChange={setEditOpen}
+        open={editOpen}
+        talent={talent}
+      />
 
       <ScrollArea className="min-h-0 flex-1">
         <div className="flex flex-col gap-5 p-5">

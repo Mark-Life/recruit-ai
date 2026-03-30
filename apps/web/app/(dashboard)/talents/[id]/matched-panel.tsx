@@ -8,12 +8,14 @@ import {
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import { AlertCircleIcon } from "lucide-react";
+import { AlertCircleIcon, PencilIcon } from "lucide-react";
+import { useState } from "react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import type { Talent } from "@/lib/api";
 import { useMatchesForTalent } from "@/lib/api";
 import { JobMatchCard } from "../job-match-card";
 import { ProfileMeta } from "../profile-meta";
+import { EditTalentSheet } from "./edit-talent-sheet";
 
 /** Matched state — profile + ranked job matches */
 export const MatchedPanel = ({ talent }: { talent: Talent }) => (
@@ -21,6 +23,7 @@ export const MatchedPanel = ({ talent }: { talent: Talent }) => (
 );
 
 const MatchedPanelContent = ({ talent }: { talent: Talent }) => {
+  const [editOpen, setEditOpen] = useState(false);
   const {
     data: matchList,
     error,
@@ -72,8 +75,23 @@ const MatchedPanelContent = ({ talent }: { talent: Talent }) => {
             Profile and matching jobs ranked by fit.
           </p>
         </div>
-        <Badge variant="secondary">{matches.length} matches</Badge>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setEditOpen(true)}
+            size="icon-sm"
+            variant="ghost"
+          >
+            <PencilIcon className="size-3.5" />
+          </Button>
+          <Badge variant="secondary">{matches.length} matches</Badge>
+        </div>
       </div>
+
+      <EditTalentSheet
+        onOpenChange={setEditOpen}
+        open={editOpen}
+        talent={talent}
+      />
 
       <ScrollArea className="min-h-0 flex-1">
         <div className="flex flex-col gap-5 p-5">

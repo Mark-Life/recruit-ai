@@ -15,10 +15,12 @@ import {
 } from "@workspace/ui/components/card";
 import { Progress } from "@workspace/ui/components/progress";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import { AlertCircleIcon } from "lucide-react";
+import { AlertCircleIcon, PencilIcon } from "lucide-react";
+import { useState } from "react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import type { Job, Match, ScoreBreakdown } from "@/lib/api";
 import { useMatchesForJob } from "@/lib/api";
+import { EditJobSheet } from "./edit-job-sheet";
 
 /** Panel showing match results when a job is in "ready" state. */
 export const ReadyPanel = ({ job }: { job: Job }) => (
@@ -26,6 +28,7 @@ export const ReadyPanel = ({ job }: { job: Job }) => (
 );
 
 const ReadyPanelContent = ({ job }: { job: Job }) => {
+  const [editOpen, setEditOpen] = useState(false);
   const {
     data: matchList,
     error,
@@ -69,8 +72,19 @@ const ReadyPanelContent = ({ job }: { job: Job }) => {
             scores.
           </p>
         </div>
-        <Badge variant="secondary">{matches.length} found</Badge>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setEditOpen(true)}
+            size="icon-sm"
+            variant="ghost"
+          >
+            <PencilIcon className="size-3.5" />
+          </Button>
+          <Badge variant="secondary">{matches.length} found</Badge>
+        </div>
       </div>
+
+      <EditJobSheet job={job} onOpenChange={setEditOpen} open={editOpen} />
 
       <ScrollArea className="min-h-0 flex-1">
         <div className="p-5">

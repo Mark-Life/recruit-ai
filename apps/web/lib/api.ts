@@ -12,6 +12,7 @@ import { getClient } from "./api-client";
 export type {
   JobStatus,
   StructuredJd as Job,
+  UpdateJobInput,
 } from "@workspace/core/domain/models/job-description";
 export type {
   Match,
@@ -20,6 +21,7 @@ export type {
 export type {
   Talent,
   TalentStatus,
+  UpdateTalentInput,
 } from "@workspace/core/domain/models/talent";
 
 // ---------------------------------------------------------------------------
@@ -137,4 +139,64 @@ export const useMatchesForTalent = (talentId: string) =>
 export const fetchMatchesForTalent = async (talentId: string) => {
   const client = await getClient();
   return Effect.runPromise(client.talents.matches({ path: { id: talentId } }));
+};
+
+// ---------------------------------------------------------------------------
+// Update mutations
+// ---------------------------------------------------------------------------
+
+// TODO: import these from @workspace/core instead of redeclaring
+type WorkMode = "office" | "hybrid" | "remote";
+type SeniorityLevel = "junior" | "mid" | "senior" | "lead" | "principal";
+type EmploymentType = "full-time" | "contract" | "freelance";
+
+export const useUpdateTalent = (talentId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      name?: string;
+      title?: string;
+      keywords?: readonly string[];
+      experienceYears?: number;
+      location?: string;
+      workModes?: readonly WorkMode[];
+      willingToRelocate?: boolean;
+    }) => {
+      const client = await getClient();
+      return Effect.runPromise(
+        client.talents.update({ path: { id: talentId }, payload })
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["talents", talentId] });
+      queryClient.invalidateQueries({ queryKey: ["talents"] });
+    },
+  });
+};
+
+export const useUpdateJob = (jobId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      summary?: string;
+      roleTitle?: string;
+      keywords?: readonly string[];
+      seniority?: SeniorityLevel;
+      employmentType?: EmploymentType;
+      workMode?: WorkMode;
+      location?: string;
+      willingToSponsorRelocation?: boolean;
+      experienceYearsMin?: number;
+      experienceYearsMax?: number;
+    }) => {
+      const client = await getClient();
+      return Effect.runPromise(
+        client.jobs.update({ path: { id: jobId }, payload })
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["jobs", jobId] });
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    },
+  });
 };

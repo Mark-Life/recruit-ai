@@ -5,15 +5,17 @@ import type { ClarifyingQuestion } from "@workspace/core/domain/models/clarifyin
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import { ArrowRightIcon } from "lucide-react";
+import { ArrowRightIcon, PencilIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Job } from "@/lib/api";
 import { consumeStream } from "@/lib/utils";
 import { QuestionBlock } from "../question-block";
+import { EditJobSheet } from "./edit-job-sheet";
 
 /** Panel for answering clarifying questions before matching. */
 export const RefiningPanel = ({ job }: { job: Job }) => {
+  const [editOpen, setEditOpen] = useState(false);
   const router = useRouter();
   const queryClient = useQueryClient();
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -67,12 +69,23 @@ export const RefiningPanel = ({ job }: { job: Job }) => {
               : "Answer any questions to improve matching accuracy"}
           </p>
         </div>
-        {questions.length > 0 && (
-          <Badge variant="outline">
-            {answeredCount}/{questions.length} answered
-          </Badge>
-        )}
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setEditOpen(true)}
+            size="icon-sm"
+            variant="ghost"
+          >
+            <PencilIcon className="size-3.5" />
+          </Button>
+          {questions.length > 0 && (
+            <Badge variant="outline">
+              {answeredCount}/{questions.length} answered
+            </Badge>
+          )}
+        </div>
       </div>
+
+      <EditJobSheet job={job} onOpenChange={setEditOpen} open={editOpen} />
 
       <ScrollArea className="min-h-0 flex-1">
         <div className="flex flex-col gap-5 p-5">
