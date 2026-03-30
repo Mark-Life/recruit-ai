@@ -163,6 +163,8 @@ const makeVectorSearchTestLayer = (stores: TestStores) => {
     },
     deleteTalent: () => Effect.void,
     deleteJob: () => Effect.void,
+    updateTalentPayload: () => Effect.void,
+    updateJobPayload: () => Effect.void,
   });
 };
 

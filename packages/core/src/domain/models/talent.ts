@@ -12,6 +12,17 @@ export const TalentStatus = Schema.Literal(
 );
 export type TalentStatus = typeof TalentStatus.Type;
 
+export const UpdateTalentInput = Schema.Struct({
+  title: Schema.optional(Schema.String),
+  keywords: Schema.optional(Schema.Array(Schema.String)),
+  experienceYears: Schema.optional(Schema.Number),
+  location: Schema.optional(Schema.String),
+  workModes: Schema.optional(Schema.Array(WorkMode)),
+  willingToRelocate: Schema.optional(Schema.Boolean),
+  name: Schema.optional(Schema.String),
+});
+export type UpdateTalentInput = typeof UpdateTalentInput.Type;
+
 export class Talent extends Schema.Class<Talent>("Talent")({
   id: TalentId,
   name: Schema.String,

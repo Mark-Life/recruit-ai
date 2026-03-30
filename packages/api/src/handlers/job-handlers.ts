@@ -42,4 +42,23 @@ export const JobsGroupLive = HttpApiBuilder.group(AppApi, "jobs", (handlers) =>
         });
       })
     )
+    .handle("update", ({ path, payload }) =>
+      Effect.gen(function* () {
+        const orchestration = yield* JobOrchestrationService;
+        return yield* orchestration.updateJob(
+          path.id as JobDescriptionId,
+          payload
+        );
+      }).pipe(
+        Effect.catchTag("JobDescriptionNotFoundError", (e) =>
+          Effect.fail(`Job not found: ${e.jobDescriptionId}`)
+        ),
+        Effect.catchTag("EmbeddingError", (e) =>
+          Effect.fail(`Embedding failed: ${e.message}`)
+        ),
+        Effect.catchTag("VectorSearchError", (e) =>
+          Effect.fail(`Vector search failed: ${e.message}`)
+        )
+      )
+    )
 );

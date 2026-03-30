@@ -8,12 +8,41 @@ import type {
 } from "../domain/errors";
 import type { RecruiterId, TalentId } from "../domain/models/ids";
 import type { ResumeExtraction } from "../domain/models/resume-extraction";
-import { Talent } from "../domain/models/talent";
+import { Talent, type UpdateTalentInput } from "../domain/models/talent";
 import type { DeepPartial } from "../ports/llm-port";
 import { LlmPort } from "../ports/llm-port";
 import { TalentRepository } from "../ports/talent-repository";
+import type { TalentPayload } from "../ports/vector-search-port";
 import { VectorSearchPort } from "../ports/vector-search-port";
 import { ProfileIngestionService } from "./profile-ingestion-service";
+
+const TALENT_SEMANTIC_FIELDS = [
+  "title",
+  "keywords",
+  "experienceYears",
+  "location",
+] as const;
+
+const TALENT_PAYLOAD_KEYS = [
+  "keywords",
+  "experienceYears",
+  "location",
+  "workModes",
+  "willingToRelocate",
+] as const;
+
+const extractTalentPayloadChanges = (
+  data: UpdateTalentInput
+): Partial<TalentPayload> => {
+  const result: Record<string, unknown> = {};
+  for (const key of TALENT_PAYLOAD_KEYS) {
+    if (data[key] !== undefined) {
+      const val = data[key];
+      result[key] = Array.isArray(val) ? [...val] : val;
+    }
+  }
+  return result as Partial<TalentPayload>;
+};
 
 type ExtractTalentError =
   | LlmError
@@ -49,6 +78,15 @@ export class TalentOrchestrationService extends Context.Tag(
       | EmbeddingError
       | VectorSearchError
       | VectorNotFoundError
+    >;
+
+    /** Update individual fields on a talent, re-embedding only when semantic fields change. */
+    readonly updateTalent: (
+      id: TalentId,
+      data: UpdateTalentInput
+    ) => Effect.Effect<
+      Talent,
+      TalentNotFoundError | EmbeddingError | VectorSearchError
     >;
   }
 >() {
@@ -153,6 +191,35 @@ export class TalentOrchestrationService extends Context.Tag(
               willingToRelocate: talent.willingToRelocate,
               status: "matched",
             });
+            return talent;
+          }),
+
+        updateTalent: (id, data) =>
+          Effect.gen(function* () {
+            const updated = yield* talentRepo.update(id, data);
+            const talent = new Talent({ ...updated });
+
+            const needsReEmbed = TALENT_SEMANTIC_FIELDS.some(
+              (k) => data[k] !== undefined
+            );
+
+            if (needsReEmbed) {
+              const enriched = yield* profileIngestion.enrich(talent);
+              yield* vectorSearch.upsertTalent(id, enriched.embedding, {
+                keywords: [...talent.keywords],
+                workModes: [...talent.workModes],
+                location: talent.location,
+                experienceYears: talent.experienceYears,
+                willingToRelocate: talent.willingToRelocate,
+                status: talent.status,
+              });
+            } else {
+              const payloadChanges = extractTalentPayloadChanges(data);
+              if (Object.keys(payloadChanges).length > 0) {
+                yield* vectorSearch.updateTalentPayload(id, payloadChanges);
+              }
+            }
+
             return talent;
           }),
       });

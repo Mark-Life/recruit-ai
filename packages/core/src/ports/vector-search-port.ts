@@ -83,5 +83,17 @@ export class VectorSearchPort extends Context.Tag("@recruit/VectorSearchPort")<
     readonly deleteJob: (
       id: JobDescriptionId
     ) => Effect.Effect<void, VectorSearchError>;
+
+    /** Partial payload update for talent (no re-embedding) */
+    readonly updateTalentPayload: (
+      id: TalentId,
+      payload: Partial<TalentPayload>
+    ) => Effect.Effect<void, VectorSearchError>;
+
+    /** Partial payload update for job (no re-embedding) */
+    readonly updateJobPayload: (
+      id: JobDescriptionId,
+      payload: Partial<JobPayload>
+    ) => Effect.Effect<void, VectorSearchError>;
   }
 >() {}
