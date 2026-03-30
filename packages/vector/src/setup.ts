@@ -4,7 +4,7 @@ import { EMBEDDING_DIMENSIONS } from "@workspace/core/domain/models/vector";
 const QDRANT_URL = process.env.QDRANT_URL ?? "http://localhost:6333";
 
 /** Bootstrap Qdrant collections and payload indexes. Idempotent. */
-async function setup() {
+const setup = async () => {
   const client = new QdrantClient({ url: QDRANT_URL });
 
   for (const name of ["talents", "jobs"] as const) {
@@ -64,6 +64,6 @@ async function setup() {
   });
 
   console.log("Qdrant setup complete.");
-}
+};
 
 setup().catch(console.error);

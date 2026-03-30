@@ -15,7 +15,7 @@ const TABLES = [
   "organizations",
 ] as const;
 
-async function main() {
+const main = async () => {
   const url = process.env.DATABASE_URL;
   if (!url) {
     throw new Error("DATABASE_URL is required");
@@ -29,7 +29,7 @@ async function main() {
   console.log("Done — all tables empty.");
 
   await client.end();
-}
+};
 
 main().catch((err) => {
   console.error("Reset failed:", err);

@@ -23,7 +23,7 @@ import { talents } from "./schema/talents";
 const DATASETS_DIR = resolve(import.meta.dir, "../../../datasets");
 
 /** Deterministic UUID v4-shaped ID from a seed string. Stable across re-runs. */
-function seedId(prefix: string, index: number) {
+const seedId = (prefix: string, index: number) => {
   const raw = `${prefix}-${index}`;
   const hash = new Uint8Array(
     new Bun.CryptoHasher("sha256").update(raw).digest().buffer
@@ -48,7 +48,7 @@ function seedId(prefix: string, index: number) {
     hex.slice(S4, S5),
     hex.slice(S5, S6),
   ].join("-");
-}
+};
 
 const RECRUITER_COUNT = 10;
 const TALENTS_PER_RECRUITER = 10;
@@ -79,15 +79,15 @@ const RESUME_CATEGORIES = [
 // CSV / JSON helpers
 // ---------------------------------------------------------------------------
 
-function readCsv<T>(path: string): T[] {
+const readCsv = <T>(path: string): T[] => {
   const text = readFileSync(path, "utf-8");
   const result = Papa.parse<T>(text, { header: true, skipEmptyLines: true });
   return result.data;
-}
+};
 
-function readJson<T>(path: string): T[] {
+const readJson = <T>(path: string): T[] => {
   return JSON.parse(readFileSync(path, "utf-8")) as T[];
-}
+};
 
 // ---------------------------------------------------------------------------
 // Dataset types
@@ -123,7 +123,7 @@ interface MlJobRow {
 // ---------------------------------------------------------------------------
 
 /** Pick N resumes spread evenly across the target categories. */
-function pickResumes(rows: ResumeRow[], total: number): ResumeRow[] {
+const pickResumes = (rows: ResumeRow[], total: number): ResumeRow[] => {
   const perCategory = Math.ceil(total / RESUME_CATEGORIES.length);
   const byCategory = new Map<string, ResumeRow[]>();
 
@@ -148,10 +148,10 @@ function pickResumes(rows: ResumeRow[], total: number): ResumeRow[] {
   }
 
   return picked.slice(0, total);
-}
+};
 
 /** Combine adityarajsrv-jd JSON row into a single text block. */
-function jdJsonToText(row: JdJsonRow): string {
+const jdJsonToText = (row: JdJsonRow): string => {
   const skills = Array.isArray(row.Skills) ? row.Skills.join(", ") : row.Skills;
   const responsibilities = Array.isArray(row.Responsibilities)
     ? row.Responsibilities.join("; ")
@@ -162,10 +162,10 @@ function jdJsonToText(row: JdJsonRow): string {
     `Skills: ${skills}`,
     `Responsibilities: ${responsibilities}`,
   ].join("\n");
-}
+};
 
 /** Combine ivankmk-jd CSV row into a single text block. */
-function mlJobToText(row: MlJobRow): string {
+const mlJobToText = (row: MlJobRow): string => {
   const parts = [`Title: ${row.job_title}`];
   if (row.seniority_level) {
     parts.push(`Seniority: ${row.seniority_level}`);
@@ -182,21 +182,21 @@ function mlJobToText(row: MlJobRow): string {
     parts.push(`\nDescription:\n${row.job_description_text}`);
   }
   return parts.join("\n");
-}
+};
 
 // ---------------------------------------------------------------------------
 // Seed builders
 // ---------------------------------------------------------------------------
 
-function buildRecruiters() {
+const buildRecruiters = () => {
   return Array.from({ length: RECRUITER_COUNT }, (_, i) => ({
     id: seedId("rec", i + 1),
     name: `Recruiter ${i + 1}`,
     email: `recruiter${i + 1}@demo.local`,
   }));
-}
+};
 
-function buildTalents(resumes: ResumeRow[]) {
+const buildTalents = (resumes: ResumeRow[]) => {
   const now = new Date().toISOString();
   return resumes.map((row, i) => ({
     id: seedId("talent", i + 1),
@@ -212,9 +212,9 @@ function buildTalents(resumes: ResumeRow[]) {
     status: "uploaded",
     createdAt: now,
   }));
-}
+};
 
-function buildJobs(jdRows: JdJsonRow[], mlRows: MlJobRow[]) {
+const buildJobs = (jdRows: JdJsonRow[], mlRows: MlJobRow[]) => {
   const now = new Date().toISOString();
   const half = Math.ceil(TOTAL_JOBS / 2);
 
@@ -259,13 +259,13 @@ function buildJobs(jdRows: JdJsonRow[], mlRows: MlJobRow[]) {
     }));
 
   return [...fromJd, ...fromMl];
-}
+};
 
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
-async function main() {
+const main = async () => {
   const url = process.env.DATABASE_URL;
   if (!url) {
     throw new Error("DATABASE_URL is required");
@@ -321,16 +321,16 @@ async function main() {
     `Seed complete: ${seedRecruiters.length} recruiters, ${seedTalents.length} talents, ${seedJobs.length} jobs`
   );
   await sql.end();
-}
+};
 
 /** Split array into chunks of given size. */
-function chunk<T>(arr: T[], size: number): T[][] {
+const chunk = <T>(arr: T[], size: number): T[][] => {
   const result: T[][] = [];
   for (let i = 0; i < arr.length; i += size) {
     result.push(arr.slice(i, i + size));
   }
   return result;
-}
+};
 
 main().catch((err) => {
   console.error("Seed failed:", err);

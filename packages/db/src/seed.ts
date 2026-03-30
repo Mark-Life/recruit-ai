@@ -22,7 +22,7 @@ const SEED_RECRUITER = {
   email: "recruiter@demo.local",
 };
 
-async function main() {
+const main = async () => {
   const url = process.env.DATABASE_URL;
   if (!url) {
     throw new Error("DATABASE_URL is required");
@@ -42,7 +42,7 @@ async function main() {
 
   console.log("Seed complete.");
   await sql.end();
-}
+};
 
 main().catch((err) => {
   console.error("Seed failed:", err);
