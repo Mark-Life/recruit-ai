@@ -39,5 +39,5 @@ export class StructuredJd extends JdExtraction.extend<StructuredJd>(
   questions: Schema.optionalWith(Schema.Array(ClarifyingQuestion), {
     default: () => [],
   }),
-  createdAt: Schema.DateFromSelf,
+  createdAt: Schema.Date,
 }) {}

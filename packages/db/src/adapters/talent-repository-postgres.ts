@@ -39,7 +39,7 @@ const toInput = (row: TalentRow): TalentInput => ({
   resumePdfBase64: row.resumePdfBase64,
   recruiterId: row.recruiterId,
   status: row.status,
-  createdAt: row.createdAt,
+  createdAt: row.createdAt.toISOString(),
 });
 
 const decodeTalent = Schema.decodeUnknownSync(Talent);

@@ -3,9 +3,11 @@ import {
   HttpRouter,
   HttpServerResponse,
 } from "@effect/platform";
-import type { TalentId } from "@workspace/core/domain/models/ids";
+import { TalentId } from "@workspace/core/domain/models/ids";
 import { TalentOrchestrationService } from "@workspace/core/services/talent-orchestration-service";
-import { Effect, Stream } from "effect";
+import { Effect, Schema, Stream } from "effect";
+
+const decodeTalentId = Schema.decodeSync(TalentId);
 
 const toNdjsonStream = <E>(
   source: Stream.Stream<unknown, E>
@@ -25,7 +27,7 @@ export const TalentStreamRoutesLive = HttpApiBuilder.Router.use((router) =>
       Effect.gen(function* () {
         const { id } = yield* HttpRouter.params;
 
-        const stream = orchestration.extractTalent(id as TalentId);
+        const stream = orchestration.extractTalent(decodeTalentId(id ?? ""));
 
         return HttpServerResponse.stream(toNdjsonStream(stream), {
           contentType: "text/x-ndjson",

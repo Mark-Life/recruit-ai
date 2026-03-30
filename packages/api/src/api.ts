@@ -1,5 +1,11 @@
 import { HttpApi, HttpApiEndpoint, HttpApiGroup } from "@effect/platform";
 import {
+  JobDescriptionId,
+  OrganizationId,
+  RecruiterId,
+  TalentId,
+} from "@workspace/core/domain/models/ids";
+import {
   StructuredJd,
   UpdateJobInput,
 } from "@workspace/core/domain/models/job-description";
@@ -29,12 +35,12 @@ export class HealthGroup extends HttpApiGroup.make("health")
 // Jobs — typed CRUD endpoints
 // ---------------------------------------------------------------------------
 
-const JobIdPath = Schema.Struct({ id: Schema.String });
+const JobIdPath = Schema.Struct({ id: JobDescriptionId });
 
 const CreateDraftJobPayload = Schema.Struct({
   rawText: Schema.String,
   title: Schema.String,
-  organizationId: Schema.String,
+  organizationId: OrganizationId,
 });
 
 export class JobsGroup extends HttpApiGroup.make("jobs")
@@ -76,13 +82,13 @@ export class JobsGroup extends HttpApiGroup.make("jobs")
 // Talents — typed CRUD endpoints
 // ---------------------------------------------------------------------------
 
-const TalentIdPath = Schema.Struct({ id: Schema.String });
+const TalentIdPath = Schema.Struct({ id: TalentId });
 
 const CreateDraftTalentPayload = Schema.Struct({
   name: Schema.String,
   resumeText: Schema.optional(Schema.String),
   resumePdfBase64: Schema.optional(Schema.String),
-  recruiterId: Schema.String,
+  recruiterId: RecruiterId,
 });
 
 const ConfirmKeywordsPayload = Schema.Struct({

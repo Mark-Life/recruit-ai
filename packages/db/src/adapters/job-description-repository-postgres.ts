@@ -38,7 +38,7 @@ const toInput = (row: JdRow): JdInput => ({
   experienceYearsMax: row.experienceYearsMax,
   status: row.status,
   questions: row.questions as JdInput["questions"],
-  createdAt: row.createdAt,
+  createdAt: row.createdAt.toISOString(),
 });
 
 const decodeJd = Schema.decodeUnknownSync(StructuredJd);

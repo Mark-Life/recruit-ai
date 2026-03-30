@@ -1,8 +1,4 @@
 import { HttpApiBuilder } from "@effect/platform";
-import type {
-  JobDescriptionId,
-  OrganizationId,
-} from "@workspace/core/domain/models/ids";
 import { JobOrchestrationService } from "@workspace/core/services/job-orchestration-service";
 import { JobQueryService } from "@workspace/core/services/job-query-service";
 import { Effect } from "effect";
@@ -19,7 +15,7 @@ export const JobsGroupLive = HttpApiBuilder.group(AppApi, "jobs", (handlers) =>
     .handle("get", ({ path }) =>
       Effect.gen(function* () {
         const query = yield* JobQueryService;
-        return yield* query.getJob(path.id as JobDescriptionId);
+        return yield* query.getJob(path.id);
       }).pipe(
         Effect.catchTag("JobDescriptionNotFoundError", (e) =>
           Effect.fail(`Job not found: ${e.jobDescriptionId}`)
@@ -29,7 +25,7 @@ export const JobsGroupLive = HttpApiBuilder.group(AppApi, "jobs", (handlers) =>
     .handle("matches", ({ path, urlParams }) =>
       Effect.gen(function* () {
         const query = yield* JobQueryService;
-        return yield* query.getMatches(path.id as JobDescriptionId, {
+        return yield* query.getMatches(path.id, {
           strictFilters: urlParams.strictFilters === "true",
         });
       }).pipe(
@@ -53,17 +49,14 @@ export const JobsGroupLive = HttpApiBuilder.group(AppApi, "jobs", (handlers) =>
         return yield* orchestration.createDraft({
           rawText: payload.rawText,
           title: payload.title,
-          organizationId: payload.organizationId as OrganizationId,
+          organizationId: payload.organizationId,
         });
       })
     )
     .handle("update", ({ path, payload }) =>
       Effect.gen(function* () {
         const orchestration = yield* JobOrchestrationService;
-        return yield* orchestration.updateJob(
-          path.id as JobDescriptionId,
-          payload
-        );
+        return yield* orchestration.updateJob(path.id, payload);
       }).pipe(
         Effect.catchTag("JobDescriptionNotFoundError", (e) =>
           Effect.fail(`Job not found: ${e.jobDescriptionId}`)

@@ -1,5 +1,4 @@
 import { HttpApiBuilder } from "@effect/platform";
-import type { RecruiterId, TalentId } from "@workspace/core/domain/models/ids";
 import { TalentOrchestrationService } from "@workspace/core/services/talent-orchestration-service";
 import { TalentQueryService } from "@workspace/core/services/talent-query-service";
 import { Effect } from "effect";
@@ -19,7 +18,7 @@ export const TalentsGroupLive = HttpApiBuilder.group(
       .handle("get", ({ path }) =>
         Effect.gen(function* () {
           const query = yield* TalentQueryService;
-          return yield* query.getTalent(path.id as TalentId);
+          return yield* query.getTalent(path.id);
         }).pipe(
           Effect.catchTag("TalentNotFoundError", (e) =>
             Effect.fail(`Talent not found: ${e.talentId}`)
@@ -30,7 +29,7 @@ export const TalentsGroupLive = HttpApiBuilder.group(
         Effect.gen(function* () {
           const orchestration = yield* TalentOrchestrationService;
           return yield* orchestration.confirmKeywords(
-            path.id as TalentId,
+            path.id,
             payload.keywords
           );
         }).pipe(
@@ -51,7 +50,7 @@ export const TalentsGroupLive = HttpApiBuilder.group(
       .handle("matches", ({ path, urlParams }) =>
         Effect.gen(function* () {
           const query = yield* TalentQueryService;
-          return yield* query.getMatches(path.id as TalentId, {
+          return yield* query.getMatches(path.id, {
             strictFilters: urlParams.strictFilters === "true",
           });
         }).pipe(
@@ -76,17 +75,14 @@ export const TalentsGroupLive = HttpApiBuilder.group(
             name: payload.name,
             resumeText: payload.resumeText,
             resumePdfBase64: payload.resumePdfBase64,
-            recruiterId: payload.recruiterId as RecruiterId,
+            recruiterId: payload.recruiterId,
           });
         })
       )
       .handle("update", ({ path, payload }) =>
         Effect.gen(function* () {
           const orchestration = yield* TalentOrchestrationService;
-          return yield* orchestration.updateTalent(
-            path.id as TalentId,
-            payload
-          );
+          return yield* orchestration.updateTalent(path.id, payload);
         }).pipe(
           Effect.catchTag("TalentNotFoundError", (e) =>
             Effect.fail(`Talent not found: ${e.talentId}`)

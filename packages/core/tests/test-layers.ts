@@ -4,6 +4,7 @@ import {
   RecruiterNotFoundError,
   TalentNotFoundError,
 } from "../src/domain/errors";
+import type { JobDescriptionId, TalentId } from "../src/domain/models/ids";
 import type { StructuredJd } from "../src/domain/models/job-description";
 import type { Recruiter } from "../src/domain/models/recruiter";
 import { ResumeExtraction } from "../src/domain/models/resume-extraction";
@@ -129,7 +130,9 @@ const makeVectorSearchTestLayer = (stores: TestStores) => {
         }
         return true;
       });
-      return Effect.succeed(filtered.slice(0, topK));
+      return Effect.succeed(
+        filtered.slice(0, topK) as VectorCandidate<TalentId>[]
+      );
     },
     searchJobsByTalentId: (_talentId, topK, filter) => {
       const filtered = stores.vectorCandidates.filter((c) => {
@@ -159,7 +162,9 @@ const makeVectorSearchTestLayer = (stores: TestStores) => {
         }
         return true;
       });
-      return Effect.succeed(filtered.slice(0, topK));
+      return Effect.succeed(
+        filtered.slice(0, topK) as VectorCandidate<JobDescriptionId>[]
+      );
     },
     deleteTalent: () => Effect.void,
     deleteJob: () => Effect.void,

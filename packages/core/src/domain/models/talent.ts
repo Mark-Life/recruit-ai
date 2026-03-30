@@ -36,5 +36,5 @@ export class Talent extends Schema.Class<Talent>("Talent")({
   resumePdfBase64: Schema.optionalWith(Schema.String, { nullable: true }),
   recruiterId: RecruiterId,
   status: TalentStatus,
-  createdAt: Schema.DateFromSelf,
+  createdAt: Schema.Date,
 }) {}

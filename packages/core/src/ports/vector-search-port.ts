@@ -3,8 +3,8 @@ import type { VectorNotFoundError, VectorSearchError } from "../domain/errors";
 import type { JobDescriptionId, TalentId } from "../domain/models/ids";
 import type { Vector } from "../domain/models/vector";
 
-export interface VectorCandidate {
-  readonly id: string;
+export interface VectorCandidate<Id extends string = string> {
+  readonly id: Id;
   readonly similarity: number;
 }
 
@@ -62,7 +62,7 @@ export class VectorSearchPort extends Context.Tag("@recruit/VectorSearchPort")<
       topK: number,
       filter?: TalentFilter
     ) => Effect.Effect<
-      readonly VectorCandidate[],
+      readonly VectorCandidate<TalentId>[],
       VectorSearchError | VectorNotFoundError
     >;
 
@@ -72,7 +72,7 @@ export class VectorSearchPort extends Context.Tag("@recruit/VectorSearchPort")<
       topK: number,
       filter?: JobFilter
     ) => Effect.Effect<
-      readonly VectorCandidate[],
+      readonly VectorCandidate<JobDescriptionId>[],
       VectorSearchError | VectorNotFoundError
     >;
 

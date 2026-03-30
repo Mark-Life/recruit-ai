@@ -5,8 +5,13 @@ import type {
   VectorNotFoundError,
   VectorSearchError,
 } from "../domain/errors";
-import type { JobDescriptionId, TalentId } from "../domain/models/ids";
-import type { Match } from "../domain/models/match";
+import {
+  type JobDescriptionId,
+  MatchId,
+  type RecruiterId,
+  type TalentId,
+} from "../domain/models/ids";
+import { Match } from "../domain/models/match";
 import { type ScoredPair, scoreAndRank } from "../domain/scoring";
 import { JobDescriptionRepository } from "../ports/job-description-repository";
 import { TalentRepository } from "../ports/talent-repository";
@@ -26,10 +31,10 @@ const toMatch = (
   s: ScoredPair,
   talentName: string | undefined,
   jobTitle: string,
-  recruiterId: string
+  recruiterId: RecruiterId
 ) =>
-  ({
-    id: `${s.jobId}-${s.talentId}`,
+  Match.make({
+    id: MatchId.make(`${s.jobId}-${s.talentId}`),
     jobDescriptionId: s.jobId,
     talentId: s.talentId,
     recruiterId,
@@ -37,7 +42,7 @@ const toMatch = (
     breakdown: s.breakdown,
     talentName,
     jobTitle,
-  }) as unknown as Match;
+  });
 
 export class RankingService extends Context.Tag("@recruit/RankingService")<
   RankingService,
@@ -86,7 +91,7 @@ export class RankingService extends Context.Tag("@recruit/RankingService")<
               candidates.map((c) => [c.id, c.similarity])
             );
             const talents = yield* talentRepo.findByIds(
-              candidates.map((c) => c.id as TalentId)
+              candidates.map((c) => c.id)
             );
 
             const scored = scoreAndRank(
@@ -98,7 +103,7 @@ export class RankingService extends Context.Tag("@recruit/RankingService")<
               MAX_RESULTS
             );
 
-            const talentMap = new Map(talents.map((t) => [t.id as string, t]));
+            const talentMap = new Map(talents.map((t) => [t.id, t]));
             return scored.flatMap((s) => {
               const talent = talentMap.get(s.talentId);
               if (!talent) {
@@ -138,9 +143,7 @@ export class RankingService extends Context.Tag("@recruit/RankingService")<
             const similarityMap = new Map(
               candidates.map((c) => [c.id, c.similarity])
             );
-            const jds = yield* jdRepo.findByIds(
-              candidates.map((c) => c.id as JobDescriptionId)
-            );
+            const jds = yield* jdRepo.findByIds(candidates.map((c) => c.id));
 
             const scored = scoreAndRank(
               jds.map((jd) => ({
@@ -151,7 +154,7 @@ export class RankingService extends Context.Tag("@recruit/RankingService")<
               MAX_RESULTS
             );
 
-            const jdMap = new Map(jds.map((j) => [j.id as string, j]));
+            const jdMap = new Map(jds.map((j) => [j.id, j]));
             return scored.flatMap((s) => {
               const jd = jdMap.get(s.jobId);
               if (!jd) {

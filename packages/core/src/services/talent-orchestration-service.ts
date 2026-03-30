@@ -1,13 +1,14 @@
-import { Context, Effect, Layer, Ref, Stream } from "effect";
-import type {
-  EmbeddingError,
+import { Context, Effect, Layer, Ref, Schema, Stream } from "effect";
+import {
+  type EmbeddingError,
   LlmError,
-  TalentNotFoundError,
-  VectorNotFoundError,
-  VectorSearchError,
+  type TalentNotFoundError,
+  type VectorNotFoundError,
+  type VectorSearchError,
 } from "../domain/errors";
-import type { RecruiterId, TalentId } from "../domain/models/ids";
-import type { ResumeExtraction } from "../domain/models/resume-extraction";
+import type { RecruiterId } from "../domain/models/ids";
+import { TalentId } from "../domain/models/ids";
+import { ResumeExtraction } from "../domain/models/resume-extraction";
 import { Talent, type UpdateTalentInput } from "../domain/models/talent";
 import type { DeepPartial } from "../ports/llm-port";
 import { LlmPort } from "../ports/llm-port";
@@ -43,6 +44,17 @@ const extractTalentPayloadChanges = (
   }
   return result as Partial<TalentPayload>;
 };
+
+/** Decode a DeepPartial<ResumeExtraction> into a validated ResumeExtraction, mapping ParseError to LlmError. */
+const decodeResumeExtraction = (raw: DeepPartial<ResumeExtraction>) =>
+  Schema.decodeUnknown(ResumeExtraction)(raw).pipe(
+    Effect.mapError(
+      (parseError) =>
+        new LlmError({
+          message: `LLM output failed ResumeExtraction validation: ${parseError.message}`,
+        })
+    )
+  );
 
 type ExtractTalentError =
   | LlmError
@@ -105,7 +117,7 @@ export class TalentOrchestrationService extends Context.Tag(
         existing: Talent
       ) =>
         Effect.gen(function* () {
-          const extraction = (yield* Ref.get(ref)) as ResumeExtraction;
+          const extraction = yield* decodeResumeExtraction(yield* Ref.get(ref));
 
           const updated = yield* talentRepo.update(id, {
             title: extraction.title,
@@ -135,7 +147,7 @@ export class TalentOrchestrationService extends Context.Tag(
         createDraft: (params) =>
           talentRepo.create(
             new Talent({
-              id: crypto.randomUUID() as TalentId,
+              id: TalentId.make(crypto.randomUUID()),
               name: params.name,
               title: "",
               keywords: [],

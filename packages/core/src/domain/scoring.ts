@@ -1,7 +1,7 @@
 import type { VectorCandidate } from "../ports/vector-search-port";
 import type { JobDescriptionId, TalentId } from "./models/ids";
 import type { StructuredJd } from "./models/job-description";
-import type { ScoreBreakdown } from "./models/match";
+import { ScoreBreakdown } from "./models/match";
 import type { Talent } from "./models/talent";
 
 export interface ScoredPair {
@@ -38,12 +38,12 @@ export const scorePair = (
 
   const constraintFit = computeConstraintFit(talent, jd);
 
-  const breakdown: ScoreBreakdown = {
+  const breakdown = ScoreBreakdown.make({
     semanticSimilarity,
     keywordOverlap,
     experienceFit,
     constraintFit,
-  } as ScoreBreakdown;
+  });
 
   const totalScore =
     semanticSimilarity * WEIGHTS.semanticSimilarity +
@@ -80,7 +80,7 @@ export const scoreTalents = (
   candidates: readonly VectorCandidate[]
 ) => {
   const similarityMap = new Map(candidates.map((c) => [c.id, c.similarity]));
-  const talentMap = new Map(talents.map((t) => [t.id as string, t]));
+  const talentMap = new Map(talents.map((t) => [t.id, t]));
 
   const scored = scoreAndRank(
     talents.map((talent) => ({

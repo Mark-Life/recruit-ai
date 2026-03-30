@@ -6,6 +6,12 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query";
+import {
+  JobDescriptionId,
+  OrganizationId,
+  RecruiterId,
+  TalentId,
+} from "@workspace/core/domain/models/ids";
 import { Effect } from "effect";
 import { getClient } from "./api-client";
 
@@ -45,7 +51,14 @@ export const useCreateDraftJob = () =>
       organizationId: string;
     }) => {
       const client = await getClient();
-      return Effect.runPromise(client.jobs.createDraft({ payload: params }));
+      return Effect.runPromise(
+        client.jobs.createDraft({
+          payload: {
+            ...params,
+            organizationId: OrganizationId.make(params.organizationId),
+          },
+        })
+      );
     },
   });
 
@@ -54,7 +67,9 @@ export const useJob = (id: string) =>
     queryKey: ["jobs", id],
     queryFn: async () => {
       const client = await getClient();
-      return Effect.runPromise(client.jobs.get({ path: { id } }));
+      return Effect.runPromise(
+        client.jobs.get({ path: { id: JobDescriptionId.make(id) } })
+      );
     },
   });
 
@@ -65,7 +80,7 @@ export const useMatchesForJob = (jobId: string, strictFilters = false) =>
       const client = await getClient();
       return Effect.runPromise(
         client.jobs.matches({
-          path: { id: jobId },
+          path: { id: JobDescriptionId.make(jobId) },
           urlParams: { strictFilters: strictFilters ? "true" : undefined },
         })
       );
@@ -86,7 +101,14 @@ export const useCreateDraftTalent = () =>
       recruiterId: string;
     }) => {
       const client = await getClient();
-      return Effect.runPromise(client.talents.createDraft({ payload: params }));
+      return Effect.runPromise(
+        client.talents.createDraft({
+          payload: {
+            ...params,
+            recruiterId: RecruiterId.make(params.recruiterId),
+          },
+        })
+      );
     },
   });
 
@@ -104,7 +126,9 @@ export const useTalent = (id: string) =>
     queryKey: ["talents", id],
     queryFn: async () => {
       const client = await getClient();
-      return Effect.runPromise(client.talents.get({ path: { id } }));
+      return Effect.runPromise(
+        client.talents.get({ path: { id: TalentId.make(id) } })
+      );
     },
   });
 
@@ -116,7 +140,7 @@ export const useConfirmKeywords = (talentId: string) => {
       const client = await getClient();
       return Effect.runPromise(
         client.talents.confirmKeywords({
-          path: { id: talentId },
+          path: { id: TalentId.make(talentId) },
           payload: { keywords: [...keywords] },
         })
       );
@@ -135,7 +159,7 @@ export const useMatchesForTalent = (talentId: string, strictFilters = false) =>
       const client = await getClient();
       return Effect.runPromise(
         client.talents.matches({
-          path: { id: talentId },
+          path: { id: TalentId.make(talentId) },
           urlParams: { strictFilters: strictFilters ? "true" : undefined },
         })
       );
@@ -147,7 +171,10 @@ export const useMatchesForTalent = (talentId: string, strictFilters = false) =>
 export const fetchMatchesForTalent = async (talentId: string) => {
   const client = await getClient();
   return Effect.runPromise(
-    client.talents.matches({ path: { id: talentId }, urlParams: {} })
+    client.talents.matches({
+      path: { id: TalentId.make(talentId) },
+      urlParams: {},
+    })
   );
 };
 
@@ -174,7 +201,10 @@ export const useUpdateTalent = (talentId: string) => {
     }) => {
       const client = await getClient();
       return Effect.runPromise(
-        client.talents.update({ path: { id: talentId }, payload })
+        client.talents.update({
+          path: { id: TalentId.make(talentId) },
+          payload,
+        })
       );
     },
     onSuccess: () => {
@@ -201,7 +231,10 @@ export const useUpdateJob = (jobId: string) => {
     }) => {
       const client = await getClient();
       return Effect.runPromise(
-        client.jobs.update({ path: { id: jobId }, payload })
+        client.jobs.update({
+          path: { id: JobDescriptionId.make(jobId) },
+          payload,
+        })
       );
     },
     onSuccess: () => {

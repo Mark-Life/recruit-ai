@@ -1,20 +1,21 @@
-import { Context, Effect, Layer, Ref, Stream } from "effect";
-import type {
-  EmbeddingError,
-  JobDescriptionNotFoundError,
+import { Context, Effect, Layer, Ref, Schema, Stream } from "effect";
+import {
+  type EmbeddingError,
+  type JobDescriptionNotFoundError,
   LlmError,
-  TalentNotFoundError,
-  VectorNotFoundError,
-  VectorSearchError,
+  type TalentNotFoundError,
+  type VectorNotFoundError,
+  type VectorSearchError,
 } from "../domain/errors";
 import type { ClarifyingAnswer } from "../domain/jd-enrichment";
 import { mergeAnswersIntoJd } from "../domain/jd-enrichment";
 import type { ClarifyingQuestionsExtractionOutput } from "../domain/models/clarifying-question";
-import type { JobDescriptionId, OrganizationId } from "../domain/models/ids";
-import type { JdExtraction } from "../domain/models/jd-extraction";
-import type {
+import type { OrganizationId } from "../domain/models/ids";
+import { JobDescriptionId } from "../domain/models/ids";
+import { JdExtraction } from "../domain/models/jd-extraction";
+import {
   StructuredJd,
-  UpdateJobInput,
+  type UpdateJobInput,
 } from "../domain/models/job-description";
 import type { Match } from "../domain/models/match";
 import { EmbeddingPort } from "../ports/embedding-port";
@@ -47,6 +48,17 @@ const extractJobPayloadChanges = (
   }
   return result as Partial<JobPayload>;
 };
+
+/** Decode a DeepPartial<JdExtraction> into a validated JdExtraction, mapping ParseError to LlmError. */
+const decodeJdExtraction = (raw: DeepPartial<JdExtraction>) =>
+  Schema.decodeUnknown(JdExtraction)(raw).pipe(
+    Effect.mapError(
+      (parseError) =>
+        new LlmError({
+          message: `LLM output failed JdExtraction validation: ${parseError.message}`,
+        })
+    )
+  );
 
 export interface CreateJobStreamOutput {
   readonly jd?: DeepPartial<JdExtraction>;
@@ -121,24 +133,26 @@ export class JobOrchestrationService extends Context.Tag(
 
       return JobOrchestrationService.of({
         createDraft: (params) =>
-          jdRepo.create({
-            id: crypto.randomUUID() as JobDescriptionId,
-            organizationId: params.organizationId,
-            rawText: params.rawText,
-            roleTitle: params.title,
-            summary: "",
-            keywords: [],
-            seniority: "mid",
-            employmentType: "full-time",
-            workMode: "remote",
-            location: "",
-            willingToSponsorRelocation: false,
-            experienceYearsMin: 0,
-            experienceYearsMax: 0,
-            status: "draft",
-            questions: [],
-            createdAt: new Date(),
-          } as StructuredJd),
+          jdRepo.create(
+            StructuredJd.make({
+              id: JobDescriptionId.make(crypto.randomUUID()),
+              organizationId: params.organizationId,
+              rawText: params.rawText,
+              roleTitle: params.title,
+              summary: "",
+              keywords: [],
+              seniority: "mid",
+              employmentType: "full-time",
+              workMode: "remote",
+              location: "",
+              willingToSponsorRelocation: false,
+              experienceYearsMin: 0,
+              experienceYearsMax: 0,
+              status: "draft",
+              questions: [],
+              createdAt: new Date(),
+            })
+          ),
 
         createJob: (params) =>
           Stream.unwrap(
@@ -154,16 +168,20 @@ export class JobOrchestrationService extends Context.Tag(
 
               const persistAndQuestionsPhase = Stream.unwrap(
                 Effect.gen(function* () {
-                  const finalJd = yield* Ref.get(jdRef);
+                  const finalJd = yield* decodeJdExtraction(
+                    yield* Ref.get(jdRef)
+                  );
 
-                  yield* jdRepo.create({
-                    ...(finalJd as JdExtraction),
-                    id: crypto.randomUUID() as JobDescriptionId,
-                    organizationId: params.organizationId,
-                    rawText: params.rawText,
-                    status: "refining",
-                    createdAt: new Date(),
-                  } as StructuredJd);
+                  yield* jdRepo.create(
+                    StructuredJd.make({
+                      ...finalJd,
+                      id: JobDescriptionId.make(crypto.randomUUID()),
+                      organizationId: params.organizationId,
+                      rawText: params.rawText,
+                      status: "refining",
+                      createdAt: new Date(),
+                    })
+                  );
 
                   return llm
                     .streamClarifyingQuestions(params.rawText, finalJd)
@@ -200,10 +218,12 @@ export class JobOrchestrationService extends Context.Tag(
 
               const persistAndQuestionsPhase = Stream.unwrap(
                 Effect.gen(function* () {
-                  const finalJd = yield* Ref.get(jdRef);
+                  const finalJd = yield* decodeJdExtraction(
+                    yield* Ref.get(jdRef)
+                  );
 
                   yield* jdRepo.update(id, {
-                    ...(finalJd as JdExtraction),
+                    ...finalJd,
                     status: "refining",
                   });
 
@@ -262,9 +282,9 @@ export class JobOrchestrationService extends Context.Tag(
 
               const persistPhase = Stream.fromEffect(
                 Effect.gen(function* () {
-                  const finalExtraction = (yield* Ref.get(
-                    jdRef
-                  )) as JdExtraction;
+                  const finalExtraction = yield* decodeJdExtraction(
+                    yield* Ref.get(jdRef)
+                  );
 
                   yield* jdRepo.update(id, {
                     ...finalExtraction,

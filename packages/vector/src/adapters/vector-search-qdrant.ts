@@ -129,7 +129,7 @@ export const VectorSearchQdrantLayer = Layer.effect(
           );
 
           return results.map((r) => ({
-            id: r.id as string,
+            id: r.id as TalentId,
             similarity: r.score,
           }));
         }),
@@ -165,7 +165,7 @@ export const VectorSearchQdrantLayer = Layer.effect(
           );
 
           return results.map((r) => ({
-            id: r.id as string,
+            id: r.id as JobDescriptionId,
             similarity: r.score,
           }));
         }),
