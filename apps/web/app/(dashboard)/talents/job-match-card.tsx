@@ -19,7 +19,13 @@ const SCORE_LABELS: Record<keyof ScoreBreakdown, string> = {
 };
 
 /** Ranked job match card with score breakdown */
-export function JobMatchCard({ match, rank }: { match: Match; rank: number }) {
+export const JobMatchCard = ({
+  match,
+  rank,
+}: {
+  match: Match;
+  rank: number;
+}) => {
   const { breakdown, totalScore } = match;
   const pct = Math.round(totalScore * PERCENT);
 
@@ -49,49 +55,45 @@ export function JobMatchCard({ match, rank }: { match: Match; rank: number }) {
       </CardContent>
     </Card>
   );
-}
+};
 
-function ScoreBreakdownGrid({ breakdown }: { breakdown: ScoreBreakdown }) {
-  return (
-    <div className="grid grid-cols-4 gap-3 rounded-lg border bg-muted/30 p-3">
-      {(Object.entries(SCORE_LABELS) as [keyof ScoreBreakdown, string][]).map(
-        ([key, label]) => {
-          const value = breakdown[key];
-          return (
-            <div className="flex flex-col items-center gap-1" key={key}>
-              <span className="font-mono font-semibold text-sm tabular-nums">
-                {value.toFixed(2)}
-              </span>
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                {label}
-              </span>
-            </div>
-          );
-        }
-      )}
-    </div>
-  );
-}
+const ScoreBreakdownGrid = ({ breakdown }: { breakdown: ScoreBreakdown }) => (
+  <div className="grid grid-cols-4 gap-3 rounded-lg border bg-muted/30 p-3">
+    {(Object.entries(SCORE_LABELS) as [keyof ScoreBreakdown, string][]).map(
+      ([key, label]) => {
+        const value = breakdown[key];
+        return (
+          <div className="flex flex-col items-center gap-1" key={key}>
+            <span className="font-mono font-semibold text-sm tabular-nums">
+              {value.toFixed(2)}
+            </span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+              {label}
+            </span>
+          </div>
+        );
+      }
+    )}
+  </div>
+);
 
 /** Placeholder skeleton while matches are loading */
-export function MatchCardSkeleton() {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-3">
-          <Skeleton className="size-7 rounded-full" />
-          <Skeleton className="h-5 w-40" />
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <Skeleton className="h-2 flex-1" />
-            <Skeleton className="h-4 w-10" />
-          </div>
-          <Skeleton className="h-16 rounded-lg" />
+export const MatchCardSkeleton = () => (
+  <Card>
+    <CardHeader>
+      <CardTitle className="flex items-center gap-3">
+        <Skeleton className="size-7 rounded-full" />
+        <Skeleton className="h-5 w-40" />
+      </CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-2 flex-1" />
+          <Skeleton className="h-4 w-10" />
         </div>
-      </CardContent>
-    </Card>
-  );
-}
+        <Skeleton className="h-16 rounded-lg" />
+      </div>
+    </CardContent>
+  </Card>
+);

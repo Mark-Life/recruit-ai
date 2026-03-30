@@ -14,23 +14,23 @@ const fontMono = Geist_Mono({
   variable: "--font-mono",
 });
 
-export default function RootLayout({
+const RootLayout = ({
   children,
 }: Readonly<{
   children: ReactNode;
-}>) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={cn(
-          geist.variable,
-          interHeading.variable,
-          fontMono.variable,
-          "font-sans antialiased"
-        )}
-      >
-        <Providers>{children}</Providers>
-      </body>
-    </html>
-  );
-}
+}>) => (
+  <html lang="en" suppressHydrationWarning>
+    <body
+      className={cn(
+        geist.variable,
+        interHeading.variable,
+        fontMono.variable,
+        "font-sans antialiased"
+      )}
+    >
+      <Providers>{children}</Providers>
+    </body>
+  </html>
+);
+
+export default RootLayout;

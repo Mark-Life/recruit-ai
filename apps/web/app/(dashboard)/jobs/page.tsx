@@ -10,18 +10,16 @@ import { PageHeader } from "@/components/page-header";
 import { useJobs } from "@/lib/api";
 import { JobCard } from "./job-card";
 
-function NewJobButton() {
-  return (
-    <Button asChild size="sm">
-      <Link href="/jobs/new">
-        <PlusIcon className="size-4" />
-        New Job
-      </Link>
-    </Button>
-  );
-}
+const NewJobButton = () => (
+  <Button asChild size="sm">
+    <Link href="/jobs/new">
+      <PlusIcon className="size-4" />
+      New Job
+    </Link>
+  </Button>
+);
 
-function JobList() {
+const JobList = () => {
   const { data: jobs } = useJobs();
 
   if (jobs.length === 0) {
@@ -40,19 +38,19 @@ function JobList() {
       ))}
     </div>
   );
-}
+};
 
-export default function JobsPage() {
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <PageHeader action={<NewJobButton />} title="Jobs" />
-      <ScrollArea className="min-h-0 flex-1">
-        <div className="p-4">
-          <Suspense fallback={<LoadingSpinner label="Loading jobs..." />}>
-            <JobList />
-          </Suspense>
-        </div>
-      </ScrollArea>
-    </div>
-  );
-}
+const JobsPage = () => (
+  <div className="flex min-h-0 flex-1 flex-col">
+    <PageHeader action={<NewJobButton />} title="Jobs" />
+    <ScrollArea className="min-h-0 flex-1">
+      <div className="p-4">
+        <Suspense fallback={<LoadingSpinner label="Loading jobs..." />}>
+          <JobList />
+        </Suspense>
+      </div>
+    </ScrollArea>
+  </div>
+);
+
+export default JobsPage;

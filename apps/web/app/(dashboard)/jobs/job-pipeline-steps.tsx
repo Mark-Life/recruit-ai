@@ -18,7 +18,7 @@ const STATUS_ORDER: Record<JobStatus, number> = {
   ready: 3,
 };
 
-export function JobPipelineSteps({ status }: { status: JobStatus }) {
+export const JobPipelineSteps = ({ status }: { status: JobStatus }) => {
   const currentIndex = STATUS_ORDER[status];
 
   return (
@@ -64,4 +64,4 @@ export function JobPipelineSteps({ status }: { status: JobStatus }) {
       })}
     </div>
   );
-}
+};

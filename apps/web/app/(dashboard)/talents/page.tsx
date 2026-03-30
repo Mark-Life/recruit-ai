@@ -10,18 +10,16 @@ import { PageHeader } from "@/components/page-header";
 import { useTalents } from "@/lib/api";
 import { TalentCard } from "./talent-card";
 
-function NewTalentButton() {
-  return (
-    <Button asChild size="sm">
-      <Link href="/talents/new">
-        <PlusIcon className="size-4" />
-        New Talent
-      </Link>
-    </Button>
-  );
-}
+const NewTalentButton = () => (
+  <Button asChild size="sm">
+    <Link href="/talents/new">
+      <PlusIcon className="size-4" />
+      New Talent
+    </Link>
+  </Button>
+);
 
-function TalentList() {
+const TalentList = () => {
   const { data: talents } = useTalents();
 
   if (talents.length === 0) {
@@ -40,19 +38,19 @@ function TalentList() {
       ))}
     </div>
   );
-}
+};
 
-export default function TalentsPage() {
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <PageHeader action={<NewTalentButton />} title="Talent Pool" />
-      <ScrollArea className="min-h-0 flex-1">
-        <div className="p-4">
-          <Suspense fallback={<LoadingSpinner label="Loading talents..." />}>
-            <TalentList />
-          </Suspense>
-        </div>
-      </ScrollArea>
-    </div>
-  );
-}
+const TalentsPage = () => (
+  <div className="flex min-h-0 flex-1 flex-col">
+    <PageHeader action={<NewTalentButton />} title="Talent Pool" />
+    <ScrollArea className="min-h-0 flex-1">
+      <div className="p-4">
+        <Suspense fallback={<LoadingSpinner label="Loading talents..." />}>
+          <TalentList />
+        </Suspense>
+      </div>
+    </ScrollArea>
+  </div>
+);
+
+export default TalentsPage;
