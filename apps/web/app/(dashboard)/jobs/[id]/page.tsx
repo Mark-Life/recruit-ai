@@ -1,37 +1,17 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { ClarifyingQuestion } from "@workspace/core/domain/models/clarifying-question";
-import { Badge } from "@workspace/ui/components/badge";
-import { Button } from "@workspace/ui/components/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card";
-import { Input } from "@workspace/ui/components/input";
-import { Progress } from "@workspace/ui/components/progress";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import {
-  AlertTriangleIcon,
-  ArrowRightIcon,
-  CheckCircleIcon,
-  CheckIcon,
-  RefreshCwIcon,
-  SearchIcon,
-  SparklesIcon,
-} from "lucide-react";
-import { useRouter } from "next/navigation";
-import { Suspense, use, useEffect, useState } from "react";
+import { Suspense, use } from "react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { PageHeader } from "@/components/page-header";
-import type { Job, Match, ScoreBreakdown } from "@/lib/api";
-import { useJob, useMatchesForJob } from "@/lib/api";
-import { useExtractJobStream } from "@/lib/use-stream";
-import { consumeStream } from "@/lib/utils";
+import type { Job } from "@/lib/api";
+import { useJob } from "@/lib/api";
 import { JdTextPanel } from "../jd-text-panel";
 import { JobPipelineSteps } from "../job-pipeline-steps";
+import { DraftPanel, FailedExtractionPanel } from "./draft-panel";
+import { MatchingPanel } from "./matching-panel";
+import { ReadyPanel } from "./ready-panel";
+import { RefiningPanel } from "./refining-panel";
 
 type Params = Promise<{ id: string }>;
 
@@ -52,7 +32,7 @@ export default function JobDetailPage({ params }: { params: Params }) {
   );
 }
 
-function JobDetailContent({ id }: { id: string }) {
+const JobDetailContent = ({ id }: { id: string }) => {
   const { data: job } = useJob(id);
 
   return (
@@ -62,7 +42,6 @@ function JobDetailContent({ id }: { id: string }) {
         title={job.roleTitle}
       />
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        {/* Left panel — JD text */}
         <div className="min-h-0 border-b lg:w-2/5 lg:border-r lg:border-b-0">
           <ScrollArea className="h-full">
             <div className="p-5">
@@ -71,29 +50,24 @@ function JobDetailContent({ id }: { id: string }) {
           </ScrollArea>
         </div>
 
-        {/* Right panel — contextual content based on status */}
         <div className="flex min-h-0 flex-1 flex-col">
           <RightPanel job={job} />
         </div>
       </div>
     </div>
   );
-}
-
-// ---------------------------------------------------------------------------
-// Right panel dispatcher
-// ---------------------------------------------------------------------------
+};
 
 /** Extraction is considered incomplete when critical fields are empty */
-function isExtractionIncomplete(job: Job) {
-  return !job.summary && job.keywords.length === 0;
-}
+const isExtractionIncomplete = (job: Job) =>
+  !job.summary && job.keywords.length === 0;
 
-function RightPanel({ job }: { job: Job }) {
-  if (
-    job.status === "draft" ||
-    (job.status === "refining" && isExtractionIncomplete(job))
-  ) {
+const RightPanel = ({ job }: { job: Job }) => {
+  if (job.status === "draft") {
+    return <DraftPanel job={job} />;
+  }
+
+  if (job.status === "refining" && isExtractionIncomplete(job)) {
     return <FailedExtractionPanel job={job} />;
   }
 
@@ -107,431 +81,4 @@ function RightPanel({ job }: { job: Job }) {
     default:
       return <MatchingPanel />;
   }
-}
-
-// ---------------------------------------------------------------------------
-// Draft — extraction failed or not yet run, allow retry
-// ---------------------------------------------------------------------------
-
-function FailedExtractionPanel({ job }: { job: Job }) {
-  const queryClient = useQueryClient();
-  const stream = useExtractJobStream(job.id);
-  const [retrying, setRetrying] = useState(false);
-
-  useEffect(() => {
-    if (!stream.isStreaming && retrying && !stream.error) {
-      queryClient.invalidateQueries({ queryKey: ["jobs", job.id] });
-      queryClient.invalidateQueries({ queryKey: ["jobs"] });
-    }
-  }, [stream.isStreaming, retrying, stream.error, queryClient, job.id]);
-
-  function handleRetry() {
-    setRetrying(true);
-    stream.mutate();
-  }
-
-  if (stream.isStreaming) {
-    return (
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 py-16">
-        <div className="relative">
-          <div className="absolute inset-0 animate-ping rounded-full bg-primary/10" />
-          <div className="relative flex size-16 items-center justify-center rounded-full bg-primary/10">
-            <SparklesIcon className="size-7 animate-pulse text-primary" />
-          </div>
-        </div>
-        <div className="flex flex-col items-center gap-2 text-center">
-          <h3 className="font-semibold text-base">Extracting...</h3>
-          <p className="max-w-xs text-muted-foreground text-sm">
-            Analyzing the job description and generating structured data.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 py-16">
-      <div className="flex size-16 items-center justify-center rounded-full bg-destructive/10">
-        <AlertTriangleIcon className="size-7 text-destructive" />
-      </div>
-
-      <div className="flex flex-col items-center gap-2 text-center">
-        <h3 className="font-semibold text-base">Extraction Failed</h3>
-        <p className="max-w-xs text-muted-foreground text-sm">
-          {stream.error
-            ? stream.error.message
-            : "The AI extraction did not complete. This can happen due to rate limits or temporary service issues."}
-        </p>
-      </div>
-
-      <Button onClick={handleRetry} variant="outline">
-        <RefreshCwIcon className="mr-1.5 size-4" />
-        Retry Extraction
-      </Button>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Refining — clarifying questions
-// ---------------------------------------------------------------------------
-
-function RefiningPanel({ job }: { job: Job }) {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-
-  const questions: readonly ClarifyingQuestion[] = job.questions ?? [];
-
-  const submitAnswers = useMutation({
-    mutationFn: async (
-      answerList: readonly { field: string; answer: string }[]
-    ) => {
-      const res = await fetch(`/api/jobs/${job.id}/answers`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers: answerList }),
-      });
-      if (!res.ok) {
-        throw new Error(`Failed: ${res.status}`);
-      }
-      // Consume streaming response to completion
-      await consumeStream(res);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["jobs", job.id] });
-      queryClient.invalidateQueries({ queryKey: ["jobs"] });
-      router.push(`/jobs/${job.id}`);
-    },
-  });
-
-  const answeredCount = Object.values(answers).filter(
-    (v) => v.trim() !== ""
-  ).length;
-
-  function handleAnswer(field: string, value: string) {
-    setAnswers((prev) => ({ ...prev, [field]: value }));
-  }
-
-  function handleConfirm() {
-    const answerList = Object.entries(answers)
-      .filter(([, v]) => v.trim() !== "")
-      .map(([field, answer]) => ({ field, answer }));
-    submitAnswers.mutate(answerList);
-  }
-
-  return (
-    <>
-      {/* Pinned header */}
-      <div className="flex items-start justify-between gap-4 border-b px-5 py-4">
-        <div className="flex flex-col gap-1">
-          <h3 className="font-semibold text-base">Clarifying Questions</h3>
-          <p className="text-muted-foreground text-sm">
-            {questions.length > 0
-              ? `${questions.length} questions based on what's missing from the JD`
-              : "Answer any questions to improve matching accuracy"}
-          </p>
-        </div>
-        {questions.length > 0 && (
-          <Badge variant="outline">
-            {answeredCount}/{questions.length} answered
-          </Badge>
-        )}
-      </div>
-
-      {/* Scrollable questions */}
-      <ScrollArea className="min-h-0 flex-1">
-        <div className="flex flex-col gap-5 p-5">
-          {questions.map((q, i) => (
-            <QuestionBlock
-              index={i + 1}
-              key={q.field}
-              onChange={(val) => handleAnswer(q.field, val)}
-              question={q}
-              value={answers[q.field] ?? ""}
-            />
-          ))}
-
-          {questions.length === 0 && (
-            <p className="text-muted-foreground text-sm">
-              No clarifying questions needed — submit to start matching.
-            </p>
-          )}
-
-          <div className="flex justify-end pt-2">
-            <Button disabled={submitAnswers.isPending} onClick={handleConfirm}>
-              {submitAnswers.isPending ? (
-                "Matching..."
-              ) : (
-                <>
-                  Confirm & Match
-                  <ArrowRightIcon className="ml-1 size-4" />
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      </ScrollArea>
-    </>
-  );
-}
-
-function QuestionBlock({
-  index,
-  question,
-  value,
-  onChange,
-}: {
-  index: number;
-  question: ClarifyingQuestion;
-  value: string;
-  onChange: (val: string) => void;
-}) {
-  const hasOptions = question.options.length > 0;
-  const isAnswered = value.trim() !== "";
-
-  return (
-    <div className="flex flex-col gap-2.5 rounded-lg border bg-card p-4">
-      <div className="flex items-start gap-2.5">
-        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted font-mono font-semibold text-xs tabular-nums">
-          {index}
-        </span>
-        <div className="flex flex-1 flex-col gap-1">
-          <p className="font-medium text-sm">{question.question}</p>
-          <p className="text-muted-foreground text-xs">{question.reason}</p>
-        </div>
-        {isAnswered && (
-          <CheckCircleIcon className="mt-0.5 size-4 shrink-0 text-primary" />
-        )}
-      </div>
-      <div className="pl-8">
-        {hasOptions ? (
-          <div className="flex flex-wrap gap-2">
-            {question.options.map((opt) => (
-              <Button
-                key={opt}
-                onClick={() => onChange(opt)}
-                size="sm"
-                variant={value === opt ? "default" : "outline"}
-              >
-                {opt}
-              </Button>
-            ))}
-          </div>
-        ) : (
-          <Input
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="Type your answer..."
-            value={value}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Matching — analyzing state
-// ---------------------------------------------------------------------------
-
-function MatchingPanel() {
-  return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 py-16">
-      {/* Pulsing search icon */}
-      <div className="relative">
-        <div className="absolute inset-0 animate-ping rounded-full bg-primary/10" />
-        <div className="relative flex size-16 items-center justify-center rounded-full bg-primary/10">
-          <SearchIcon className="size-7 text-primary" />
-        </div>
-      </div>
-
-      <div className="flex flex-col items-center gap-2 text-center">
-        <h3 className="font-semibold text-base">Analyzing & Matching</h3>
-        <p className="max-w-xs text-muted-foreground text-sm">
-          Running vector similarity search and scoring talents against this job
-          description.
-        </p>
-      </div>
-
-      {/* Animated steps */}
-      <div className="flex flex-col gap-3 pt-2">
-        <AnalysisStep done label="Extracting keywords and requirements" />
-        <AnalysisStep done label="Generating embedding vector" />
-        <AnalysisStep active label="Searching talent pool" />
-        <AnalysisStep label="Scoring and ranking matches" />
-      </div>
-    </div>
-  );
-}
-
-function AnalysisStep({
-  label,
-  done,
-  active,
-}: {
-  label: string;
-  done?: boolean;
-  active?: boolean;
-}) {
-  function renderIcon() {
-    if (done) {
-      return (
-        <div className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-          <CheckIcon className="size-3" />
-        </div>
-      );
-    }
-    if (active) {
-      return (
-        <div className="flex size-5 items-center justify-center">
-          <SparklesIcon className="size-4 animate-pulse text-primary" />
-        </div>
-      );
-    }
-    return (
-      <div className="size-5 rounded-full border border-border bg-muted" />
-    );
-  }
-
-  function labelClassName() {
-    if (done) {
-      return "text-muted-foreground text-sm line-through";
-    }
-    if (active) {
-      return "font-medium text-foreground text-sm";
-    }
-    return "text-muted-foreground text-sm";
-  }
-
-  return (
-    <div className="flex items-center gap-2.5">
-      {renderIcon()}
-      <span className={labelClassName()}>{label}</span>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Ready — match results
-// ---------------------------------------------------------------------------
-
-function ReadyPanel({ job }: { job: Job }) {
-  return (
-    <Suspense fallback={<LoadingSpinner label="Loading matches..." />}>
-      <ReadyPanelContent job={job} />
-    </Suspense>
-  );
-}
-
-function ReadyPanelContent({ job }: { job: Job }) {
-  const { data: matchList } = useMatchesForJob(job.id);
-
-  return (
-    <>
-      {/* Pinned header */}
-      <div className="flex items-start justify-between gap-4 border-b px-5 py-4">
-        <div className="flex flex-col gap-1">
-          <h3 className="font-semibold text-base">Matched Talents</h3>
-          <p className="text-muted-foreground text-sm">
-            Ranked by combined semantic, keyword, experience, and constraint
-            scores.
-          </p>
-        </div>
-        <Badge variant="secondary">{matchList.length} found</Badge>
-      </div>
-
-      {/* Scrollable list */}
-      <ScrollArea className="min-h-0 flex-1">
-        <div className="p-5">
-          {matchList.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
-              <p className="text-sm">No matches found.</p>
-              <p className="text-xs">
-                Try adjusting the job requirements or expanding location
-                constraints.
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {matchList.map((match, i) => (
-                <MatchCard key={match.id} match={match} rank={i + 1} />
-              ))}
-            </div>
-          )}
-        </div>
-      </ScrollArea>
-    </>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Match card
-// ---------------------------------------------------------------------------
-
-const PERCENT = 100;
-const ID_PREVIEW_LENGTH = 8;
-
-function MatchCard({ match, rank }: { match: Match; rank: number }) {
-  const { breakdown, totalScore } = match;
-  const pct = Math.round(totalScore * PERCENT);
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-3">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted font-mono font-semibold text-xs">
-            {rank}
-          </span>
-          <span>
-            {match.talentName ??
-              `Talent #${match.talentId.slice(0, ID_PREVIEW_LENGTH)}`}
-          </span>
-        </CardTitle>
-      </CardHeader>
-
-      <CardContent>
-        <div className="flex flex-col gap-4">
-          {/* Total score */}
-          <div className="flex items-center gap-3">
-            <Progress className="h-2 flex-1" value={pct} />
-            <span className="font-mono font-semibold text-sm tabular-nums">
-              {pct}%
-            </span>
-          </div>
-
-          {/* Score breakdown */}
-          <ScoreBreakdownGrid breakdown={breakdown} />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-const SCORE_LABELS: Record<keyof ScoreBreakdown, string> = {
-  semanticSimilarity: "Semantic",
-  keywordOverlap: "Keywords",
-  experienceFit: "Experience",
-  constraintFit: "Constraints",
 };
-
-function ScoreBreakdownGrid({ breakdown }: { breakdown: ScoreBreakdown }) {
-  return (
-    <div className="grid grid-cols-4 gap-3 rounded-lg border bg-muted/30 p-3">
-      {(Object.entries(SCORE_LABELS) as [keyof ScoreBreakdown, string][]).map(
-        ([key, label]) => {
-          const value = breakdown[key];
-          return (
-            <div className="flex flex-col items-center gap-1" key={key}>
-              <span className="font-mono font-semibold text-sm tabular-nums">
-                {value.toFixed(2)}
-              </span>
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                {label}
-              </span>
-            </div>
-          );
-        }
-      )}
-    </div>
-  );
-}

@@ -13,7 +13,6 @@ import { Textarea } from "@workspace/ui/components/textarea";
 import {
   ArrowRightIcon,
   BriefcaseIcon,
-  CheckCircleIcon,
   ClockIcon,
   MapPinIcon,
   MonitorIcon,
@@ -28,6 +27,8 @@ import { SEED_ORGANIZATION_ID } from "@/lib/seed-constants";
 import { useExtractJobStream } from "@/lib/use-stream";
 import { consumeStream } from "@/lib/utils";
 import { JobPipelineSteps } from "../job-pipeline-steps";
+import { QuestionBlock } from "../question-block";
+import { QuestionSkeletons } from "../question-skeletons";
 
 interface DraftInfo {
   id: string;
@@ -63,7 +64,11 @@ export default function NewJobPage() {
 // Phase 1 — Form
 // ---------------------------------------------------------------------------
 
-function FormPhase({ onCreated }: { onCreated: (draft: DraftInfo) => void }) {
+const FormPhase = ({
+  onCreated,
+}: {
+  onCreated: (draft: DraftInfo) => void;
+}) => {
   const createDraft = useCreateDraftJob();
 
   const form = useForm({
@@ -180,13 +185,13 @@ function FormPhase({ onCreated }: { onCreated: (draft: DraftInfo) => void }) {
       </ScrollArea>
     </div>
   );
-}
+};
 
 // ---------------------------------------------------------------------------
 // Phase 2 — Extraction + inline refining (no navigation)
 // ---------------------------------------------------------------------------
 
-function ExtractionPhase({ draft }: { draft: DraftInfo }) {
+const ExtractionPhase = ({ draft }: { draft: DraftInfo }) => {
   const stream = useExtractJobStream(draft.id);
   const started = useRef(false);
 
@@ -237,7 +242,7 @@ function ExtractionPhase({ draft }: { draft: DraftInfo }) {
       </div>
     </div>
   );
-}
+};
 
 // ---------------------------------------------------------------------------
 // Left panel — same structure as JdTextPanel, with streaming data
@@ -256,7 +261,7 @@ interface StreamingJd {
   workMode?: string;
 }
 
-function StreamingJdPanel({
+const StreamingJdPanel = ({
   jd,
   title,
   rawText,
@@ -266,7 +271,7 @@ function StreamingJdPanel({
   title: string;
   rawText: string;
   isStreaming: boolean;
-}) {
+}) => {
   const showMetaSkeleton = isStreaming && !jd?.location && !jd?.workMode;
   const showKeywordsSkeleton =
     isStreaming &&
@@ -371,7 +376,7 @@ function StreamingJdPanel({
       </div>
     </div>
   );
-}
+};
 
 // ---------------------------------------------------------------------------
 // Right panel — streams questions, then transitions to interactive answers
@@ -388,7 +393,7 @@ interface StreamingQuestions {
   questions?: readonly Partial<StreamingQuestion>[];
 }
 
-function QuestionsPanel({
+const QuestionsPanel = ({
   questions,
   isStreaming,
   streamDone,
@@ -402,7 +407,7 @@ function QuestionsPanel({
   error: Error | null;
   jobId: string;
   onRetry: () => void;
-}) {
+}) => {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -430,16 +435,16 @@ function QuestionsPanel({
     },
   });
 
-  function handleAnswer(field: string, value: string) {
+  const handleAnswer = (field: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [field]: value }));
-  }
+  };
 
-  function handleConfirm() {
+  const handleConfirm = () => {
     const answerList = Object.entries(answers)
       .filter(([, v]) => v.trim() !== "")
       .map(([field, answer]) => ({ field, answer }));
     submitAnswers.mutate(answerList);
-  }
+  };
 
   const answeredCount = Object.values(answers).filter(
     (v) => v.trim() !== ""
@@ -524,92 +529,4 @@ function QuestionsPanel({
       </ScrollArea>
     </>
   );
-}
-
-const QUESTION_SKELETON_KEYS = ["q-skel-1", "q-skel-2", "q-skel-3"] as const;
-
-function QuestionSkeletons() {
-  return (
-    <>
-      {QUESTION_SKELETON_KEYS.map((key) => (
-        <div
-          className="flex flex-col gap-2.5 rounded-lg border bg-card p-4"
-          key={key}
-        >
-          <div className="flex items-start gap-2.5">
-            <Skeleton className="size-6 shrink-0 rounded-full" />
-            <div className="flex flex-1 flex-col gap-1.5">
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-3 w-1/2" />
-            </div>
-          </div>
-        </div>
-      ))}
-    </>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Question block — read-only during streaming, interactive after
-// ---------------------------------------------------------------------------
-
-function QuestionBlock({
-  index,
-  question,
-  value,
-  onChange,
-  interactive,
-}: {
-  index: number;
-  question: Partial<StreamingQuestion>;
-  value: string;
-  onChange: (val: string) => void;
-  interactive: boolean;
-}) {
-  const hasOptions = question.options != null && question.options.length > 0;
-  const isAnswered = value.trim() !== "";
-
-  return (
-    <div className="flex flex-col gap-2.5 rounded-lg border bg-card p-4">
-      <div className="flex items-start gap-2.5">
-        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted font-mono font-semibold text-xs tabular-nums">
-          {index}
-        </span>
-        <div className="flex flex-1 flex-col gap-1">
-          <p className="font-medium text-sm">{question.question}</p>
-          {question.reason && (
-            <p className="text-muted-foreground text-xs">{question.reason}</p>
-          )}
-        </div>
-        {interactive && isAnswered && (
-          <CheckCircleIcon className="mt-0.5 size-4 shrink-0 text-primary" />
-        )}
-      </div>
-
-      {interactive && (
-        <div className="pl-8">
-          {hasOptions ? (
-            <div className="flex flex-wrap gap-2">
-              {question.options?.map((opt) => (
-                <Button
-                  key={opt}
-                  onClick={() => onChange(opt)}
-                  size="sm"
-                  variant={value === opt ? "default" : "outline"}
-                >
-                  {opt}
-                </Button>
-              ))}
-            </div>
-          ) : (
-            <Input
-              onChange={(e) => onChange(e.target.value)}
-              placeholder="Type your answer..."
-              value={value}
-            />
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+};

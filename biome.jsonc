@@ -16,6 +16,9 @@
       "!packages/db/drizzle/**/*"
     ]
   },
+  "javascript": {
+    "globals": ["Bun"]
+  },
   "overrides": [
     {
       "includes": [

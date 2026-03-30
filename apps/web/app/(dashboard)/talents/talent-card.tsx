@@ -54,7 +54,7 @@ const STATUS_CONFIG: Record<
   },
 };
 
-export function TalentCard({ talent }: { talent: Talent }) {
+export const TalentCard = ({ talent }: { talent: Talent }) => {
   const config = STATUS_CONFIG[talent.status];
   const StatusIcon = config.icon;
 
@@ -94,4 +94,4 @@ export function TalentCard({ talent }: { talent: Talent }) {
       </Card>
     </Link>
   );
-}
+};

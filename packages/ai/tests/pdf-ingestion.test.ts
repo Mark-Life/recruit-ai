@@ -15,7 +15,7 @@ import { GeminiEmbeddingLive, GeminiLlmLive } from "../src/layers";
 
 const PDF_PATH = resolve(
   import.meta.dirname,
-  "../../../datasets/archive/data/data/ENGINEERING/11890896.pdf"
+  "../../../datasets/snehaanbhawal-resume/data/data/ENGINEERING/11890896.pdf"
 );
 
 const pdfBytes = new Uint8Array(readFileSync(PDF_PATH));

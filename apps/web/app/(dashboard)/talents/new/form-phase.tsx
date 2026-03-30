@@ -31,8 +31,8 @@ export interface DraftInfo {
   resumeText?: string;
 }
 
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
+const fileToBase64 = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
@@ -42,13 +42,12 @@ function fileToBase64(file: File): Promise<string> {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
-}
 
-export function FormPhase({
+export const FormPhase = ({
   onCreated,
 }: {
   onCreated: (draft: DraftInfo) => void;
-}) {
+}) => {
   const createDraft = useCreateDraftTalent();
   const [inputMode, setInputMode] = useState<"text" | "pdf">("text");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -227,13 +226,13 @@ export function FormPhase({
       </ScrollArea>
     </div>
   );
-}
+};
 
 // ---------------------------------------------------------------------------
 // PDF file input with drag-and-drop zone
 // ---------------------------------------------------------------------------
 
-function ResumeFileInput({
+const ResumeFileInput = ({
   file,
   onFileChange,
   fileInputRef,
@@ -243,11 +242,11 @@ function ResumeFileInput({
   onFileChange: (file: File | null) => void;
   fileInputRef: { current: HTMLInputElement | null };
   error?: string;
-}) {
+}) => {
   const [dragOver, setDragOver] = useState(false);
   const [fileError, setFileError] = useState<string>();
 
-  function validateAndSet(f: File) {
+  const validateAndSet = (f: File) => {
     setFileError(undefined);
     if (f.type !== "application/pdf") {
       setFileError("Only PDF files are accepted");
@@ -258,34 +257,34 @@ function ResumeFileInput({
       return;
     }
     onFileChange(f);
-  }
+  };
 
-  function handleDrop(e: {
+  const handleDrop = (e: {
     preventDefault: () => void;
     dataTransfer: DataTransfer;
-  }) {
+  }) => {
     e.preventDefault();
     setDragOver(false);
     const f = e.dataTransfer.files[0];
     if (f) {
       validateAndSet(f);
     }
-  }
+  };
 
-  function handleFileInput(e: { target: { files: FileList | null } }) {
+  const handleFileInput = (e: { target: { files: FileList | null } }) => {
     const f = e.target.files?.[0];
     if (f) {
       validateAndSet(f);
     }
-  }
+  };
 
-  function handleRemove() {
+  const handleRemove = () => {
     onFileChange(null);
     setFileError(undefined);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  }
+  };
 
   const displayError = fileError ?? error;
 
@@ -354,14 +353,14 @@ function ResumeFileInput({
       )}
     </div>
   );
-}
+};
 
 const KB = BYTES_PER_KB;
 const MB = BYTES_PER_MB;
 
-function formatFileSize(bytes: number): string {
+const formatFileSize = (bytes: number): string => {
   if (bytes >= MB) {
     return `${(bytes / MB).toFixed(1)} MB`;
   }
   return `${Math.round(bytes / KB)} KB`;
-}
+};

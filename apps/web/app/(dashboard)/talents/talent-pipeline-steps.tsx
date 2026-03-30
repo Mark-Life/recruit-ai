@@ -18,7 +18,7 @@ const STATUS_ORDER: Record<TalentStatus, number> = {
   matched: 3,
 };
 
-export function TalentPipelineSteps({ status }: { status: TalentStatus }) {
+export const TalentPipelineSteps = ({ status }: { status: TalentStatus }) => {
   const currentIndex = STATUS_ORDER[status];
 
   return (
@@ -64,4 +64,4 @@ export function TalentPipelineSteps({ status }: { status: TalentStatus }) {
       })}
     </div>
   );
-}
+};

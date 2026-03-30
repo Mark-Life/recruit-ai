@@ -11,7 +11,10 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "dotenv -e ../../.env.local -- bun src/seed.ts"
+    "db:reset": "dotenv -e ../../.env.local -- bun src/seed-reset.ts",
+    "db:seed": "dotenv -e ../../.env.local -- bun src/seed.ts",
+    "db:seed:data": "dotenv -e ../../.env.local -- bun src/seed-data.ts",
+    "db:reseed": "bun run db:reset && bun run db:seed && bun run db:seed:data"
   },
   "exports": {
     "./schema": "./src/schema/index.ts",
@@ -26,9 +29,11 @@
     "postgres": "^3.4.7"
   },
   "devDependencies": {
+    "@types/papaparse": "^5.5.2",
     "@workspace/env": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
     "drizzle-kit": "1.0.0-beta.19",
+    "papaparse": "^5.5.3",
     "typescript": "^5.9.3"
   }
 }

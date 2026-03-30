@@ -126,14 +126,16 @@ export class JobOrchestrationService extends Context.Tag(
                     createdAt: new Date().toISOString(),
                   } as StructuredJd);
 
-                  return llm.streamClarifyingQuestions(params.rawText).pipe(
-                    Stream.map(
-                      (questions): CreateJobStreamOutput => ({
-                        jd: finalJd,
-                        questions,
-                      })
-                    )
-                  );
+                  return llm
+                    .streamClarifyingQuestions(params.rawText, finalJd)
+                    .pipe(
+                      Stream.map(
+                        (questions): CreateJobStreamOutput => ({
+                          jd: finalJd,
+                          questions,
+                        })
+                      )
+                    );
                 })
               );
 
@@ -166,15 +168,17 @@ export class JobOrchestrationService extends Context.Tag(
                     status: "refining",
                   });
 
-                  return llm.streamClarifyingQuestions(existingJd.rawText).pipe(
-                    Stream.tap((partial) => Ref.set(questionsRef, partial)),
-                    Stream.map(
-                      (questions): CreateJobStreamOutput => ({
-                        jd: finalJd,
-                        questions,
-                      })
-                    )
-                  );
+                  return llm
+                    .streamClarifyingQuestions(existingJd.rawText, finalJd)
+                    .pipe(
+                      Stream.tap((partial) => Ref.set(questionsRef, partial)),
+                      Stream.map(
+                        (questions): CreateJobStreamOutput => ({
+                          jd: finalJd,
+                          questions,
+                        })
+                      )
+                    );
                 })
               );
 

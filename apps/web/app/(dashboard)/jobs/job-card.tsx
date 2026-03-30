@@ -54,7 +54,7 @@ const STATUS_CONFIG: Record<
   },
 };
 
-export function JobCard({ job }: { job: Job }) {
+export const JobCard = ({ job }: { job: Job }) => {
   const config = STATUS_CONFIG[job.status];
   const StatusIcon = config.icon;
 
@@ -93,4 +93,4 @@ export function JobCard({ job }: { job: Job }) {
       </Card>
     </Link>
   );
-}
+};
