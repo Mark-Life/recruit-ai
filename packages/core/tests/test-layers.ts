@@ -34,18 +34,18 @@ export interface TestStores {
   vectorCandidates: readonly VectorCandidate[];
 }
 
-export function createTestStores(
+export const createTestStores = (
   overrides: Partial<TestStores> = {}
-): TestStores {
+): TestStores => {
   return {
     talents: overrides.talents ?? new Map(),
     recruiters: overrides.recruiters ?? new Map(),
     structuredJd: overrides.structuredJd as StructuredJd,
     vectorCandidates: overrides.vectorCandidates ?? [],
   };
-}
+};
 
-function makeLlmTestLayer(stores: TestStores) {
+const makeLlmTestLayer = (stores: TestStores) => {
   return Layer.succeed(LlmPort, {
     structureJd: (_params: {
       readonly raw: string;
@@ -84,15 +84,15 @@ function makeLlmTestLayer(stores: TestStores) {
     streamStructureResumePdf: () => Stream.succeed({}),
     streamClarifyingQuestions: () => Stream.succeed({ questions: [] }),
   });
-}
+};
 
-function makeEmbeddingTestLayer() {
+const makeEmbeddingTestLayer = () => {
   return Layer.succeed(EmbeddingPort, {
     embed: (_text: string) => Effect.succeed([...STUB_EMBEDDING]),
   });
-}
+};
 
-function makeVectorSearchTestLayer(stores: TestStores) {
+const makeVectorSearchTestLayer = (stores: TestStores) => {
   return Layer.succeed(VectorSearchPort, {
     upsertTalent: () => Effect.void,
     upsertJob: () => Effect.void,
@@ -136,9 +136,9 @@ function makeVectorSearchTestLayer(stores: TestStores) {
     deleteTalent: () => Effect.void,
     deleteJob: () => Effect.void,
   });
-}
+};
 
-function makeJobDescriptionRepositoryTestLayer(stores: TestStores) {
+const makeJobDescriptionRepositoryTestLayer = (stores: TestStores) => {
   return Layer.succeed(JobDescriptionRepository, {
     create: (jd) => Effect.succeed(jd),
     findById: (_id) =>
@@ -155,9 +155,9 @@ function makeJobDescriptionRepositoryTestLayer(stores: TestStores) {
     update: (_id, data) =>
       Effect.succeed({ ...stores.structuredJd, ...data } as StructuredJd),
   });
-}
+};
 
-function makeTalentRepositoryTestLayer(stores: TestStores) {
+const makeTalentRepositoryTestLayer = (stores: TestStores) => {
   return Layer.succeed(TalentRepository, {
     create: (talent) => {
       stores.talents.set(talent.id, talent);
@@ -204,9 +204,9 @@ function makeTalentRepositoryTestLayer(stores: TestStores) {
         })
       ),
   });
-}
+};
 
-function makeRecruiterRepositoryTestLayer(stores: TestStores) {
+const makeRecruiterRepositoryTestLayer = (stores: TestStores) => {
   return Layer.succeed(RecruiterRepository, {
     findById: (id) =>
       Effect.fromNullable(stores.recruiters.get(id)).pipe(
@@ -220,9 +220,9 @@ function makeRecruiterRepositoryTestLayer(stores: TestStores) {
       return Effect.succeed(matching);
     },
   });
-}
+};
 
-export function makeTestLayer(stores: TestStores) {
+export const makeTestLayer = (stores: TestStores) => {
   return RankingService.layer.pipe(
     Layer.provideMerge(makeVectorSearchTestLayer(stores)),
     Layer.provideMerge(makeJobDescriptionRepositoryTestLayer(stores)),
@@ -231,4 +231,4 @@ export function makeTestLayer(stores: TestStores) {
     Layer.provideMerge(makeLlmTestLayer(stores)),
     Layer.provideMerge(makeEmbeddingTestLayer())
   );
-}
+};
