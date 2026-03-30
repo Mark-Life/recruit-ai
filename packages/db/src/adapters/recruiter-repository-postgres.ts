@@ -78,20 +78,31 @@ export const RecruiterRepositoryPostgresLayer = Layer.effect(
             return [];
           }
 
-          const recruiterRows = yield* Effect.promise(() =>
-            db
-              .select()
-              .from(recruiters)
-              .where(inArray(recruiters.id, recruiterIds))
+          const [recruiterRows, allTalentRows] = yield* Effect.promise(() =>
+            Promise.all([
+              db
+                .select()
+                .from(recruiters)
+                .where(inArray(recruiters.id, recruiterIds)),
+              db
+                .select({ id: talents.id, recruiterId: talents.recruiterId })
+                .from(talents)
+                .where(inArray(talents.recruiterId, recruiterIds)),
+            ])
           );
 
-          return yield* Effect.forEach(
-            recruiterRows,
-            (row) =>
-              findTalentIds(row.id).pipe(
-                Effect.map((tIds) => toDomain(row, tIds))
-              ),
-            { concurrency: "unbounded" }
+          const talentIdsByRecruiter = new Map<string, string[]>();
+          for (const t of allTalentRows) {
+            const arr = talentIdsByRecruiter.get(t.recruiterId);
+            if (arr) {
+              arr.push(t.id);
+            } else {
+              talentIdsByRecruiter.set(t.recruiterId, [t.id]);
+            }
+          }
+
+          return recruiterRows.map((row) =>
+            toDomain(row, talentIdsByRecruiter.get(row.id) ?? [])
           );
         }),
     });
