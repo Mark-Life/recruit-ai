@@ -25,18 +25,17 @@ export type {
 // Jobs
 // ---------------------------------------------------------------------------
 
-export function useJobs() {
-  return useSuspenseQuery({
+export const useJobs = () =>
+  useSuspenseQuery({
     queryKey: ["jobs"],
     queryFn: async () => {
       const client = await getClient();
       return Effect.runPromise(client.jobs.list());
     },
   });
-}
 
-export function useCreateDraftJob() {
-  return useMutation({
+export const useCreateDraftJob = () =>
+  useMutation({
     mutationFn: async (params: {
       rawText: string;
       title: string;
@@ -46,34 +45,31 @@ export function useCreateDraftJob() {
       return Effect.runPromise(client.jobs.createDraft({ payload: params }));
     },
   });
-}
 
-export function useJob(id: string) {
-  return useSuspenseQuery({
+export const useJob = (id: string) =>
+  useSuspenseQuery({
     queryKey: ["jobs", id],
     queryFn: async () => {
       const client = await getClient();
       return Effect.runPromise(client.jobs.get({ path: { id } }));
     },
   });
-}
 
-export function useMatchesForJob(jobId: string) {
-  return useSuspenseQuery({
+export const useMatchesForJob = (jobId: string) =>
+  useSuspenseQuery({
     queryKey: ["jobs", jobId, "matches"],
     queryFn: async () => {
       const client = await getClient();
       return Effect.runPromise(client.jobs.matches({ path: { id: jobId } }));
     },
   });
-}
 
 // ---------------------------------------------------------------------------
 // Talents
 // ---------------------------------------------------------------------------
 
-export function useCreateDraftTalent() {
-  return useMutation({
+export const useCreateDraftTalent = () =>
+  useMutation({
     mutationFn: async (params: {
       name: string;
       resumeText?: string;
@@ -84,29 +80,26 @@ export function useCreateDraftTalent() {
       return Effect.runPromise(client.talents.createDraft({ payload: params }));
     },
   });
-}
 
-export function useTalents() {
-  return useSuspenseQuery({
+export const useTalents = () =>
+  useSuspenseQuery({
     queryKey: ["talents"],
     queryFn: async () => {
       const client = await getClient();
       return Effect.runPromise(client.talents.list());
     },
   });
-}
 
-export function useTalent(id: string) {
-  return useSuspenseQuery({
+export const useTalent = (id: string) =>
+  useSuspenseQuery({
     queryKey: ["talents", id],
     queryFn: async () => {
       const client = await getClient();
       return Effect.runPromise(client.talents.get({ path: { id } }));
     },
   });
-}
 
-export function useConfirmKeywords(talentId: string) {
+export const useConfirmKeywords = (talentId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -124,10 +117,10 @@ export function useConfirmKeywords(talentId: string) {
       queryClient.invalidateQueries({ queryKey: ["talents"] });
     },
   });
-}
+};
 
-export function useMatchesForTalent(talentId: string) {
-  return useSuspenseQuery({
+export const useMatchesForTalent = (talentId: string) =>
+  useSuspenseQuery({
     queryKey: ["talents", talentId, "matches"],
     queryFn: async () => {
       const client = await getClient();
@@ -136,10 +129,9 @@ export function useMatchesForTalent(talentId: string) {
       );
     },
   });
-}
 
 /** Imperative fetch for use outside React Query hooks */
-export async function fetchMatchesForTalent(talentId: string) {
+export const fetchMatchesForTalent = async (talentId: string) => {
   const client = await getClient();
   return Effect.runPromise(client.talents.matches({ path: { id: talentId } }));
-}
+};
