@@ -15,7 +15,7 @@ const MOCK_STRUCTURED_JD = {
   summary: "Looking for a senior React developer",
   roleTitle: "Senior Frontend Engineer",
   skills: ["React", "TypeScript"],
-  keywords: ["frontend", "SPA"],
+  keywords: ["React", "TypeScript", "frontend", "SPA"],
   seniority: "senior" as const,
   employmentType: "full-time" as const,
   workMode: "hybrid" as const,
