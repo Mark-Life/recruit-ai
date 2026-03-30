@@ -18,10 +18,10 @@ interface StreamOptions {
   url: string;
 }
 
-async function readNdjsonStream<T>(
+const readNdjsonStream = async <T>(
   reader: ReadableStreamDefaultReader<Uint8Array>,
   onChunk: (parsed: Partial<T>) => void
-) {
+) => {
   const decoder = new TextDecoder();
   let buffer = "";
 
@@ -46,13 +46,12 @@ async function readNdjsonStream<T>(
   if (buffer.trim()) {
     onChunk(JSON.parse(buffer.trim()) as Partial<T>);
   }
-}
+};
 
-function toError(err: unknown): Error {
-  return err instanceof Error ? err : new Error(String(err));
-}
+const toError = (err: unknown): Error =>
+  err instanceof Error ? err : new Error(String(err));
 
-export function useNdjsonStream<T>() {
+export const useNdjsonStream = <T>() => {
   const [state, setState] = useState<StreamState<T>>({
     data: null,
     isStreaming: false,
@@ -107,7 +106,7 @@ export function useNdjsonStream<T>() {
   }, []);
 
   return { ...state, start, cancel };
-}
+};
 
 // ---------------------------------------------------------------------------
 // Typed streaming mutation hooks
@@ -136,7 +135,7 @@ interface CreateJobStreamOutput {
   }>;
 }
 
-export function useExtractJobStream(jobId: string) {
+export const useExtractJobStream = (jobId: string) => {
   const stream = useNdjsonStream<CreateJobStreamOutput>();
 
   const mutate = useCallback(() => {
@@ -146,7 +145,7 @@ export function useExtractJobStream(jobId: string) {
   }, [jobId, stream.start]);
 
   return { ...stream, mutate };
-}
+};
 
 interface SubmitAnswersStreamOutput {
   employmentType?: string;
@@ -159,7 +158,7 @@ interface SubmitAnswersStreamOutput {
   workMode?: string;
 }
 
-export function useSubmitAnswersStream(jobId: string) {
+export const useSubmitAnswersStream = (jobId: string) => {
   const stream = useNdjsonStream<SubmitAnswersStreamOutput>();
 
   const mutate = useCallback(
@@ -173,7 +172,7 @@ export function useSubmitAnswersStream(jobId: string) {
   );
 
   return { ...stream, mutate };
-}
+};
 
 interface ResumeExtractionOutput {
   experienceYears?: number;
@@ -185,7 +184,7 @@ interface ResumeExtractionOutput {
   workModes?: readonly string[];
 }
 
-export function useExtractTalentStream(talentId: string) {
+export const useExtractTalentStream = (talentId: string) => {
   const stream = useNdjsonStream<ResumeExtractionOutput>();
 
   const mutate = useCallback(() => {
@@ -195,4 +194,4 @@ export function useExtractTalentStream(talentId: string) {
   }, [talentId, stream.start]);
 
   return { ...stream, mutate };
-}
+};

@@ -2,7 +2,7 @@ const MS_PER_MINUTE = 60_000;
 const MINUTES_PER_HOUR = 60;
 const HOURS_PER_DAY = 24;
 
-export function formatRelativeDate(iso: string): string {
+export const formatRelativeDate = (iso: string): string => {
   const diff = Date.now() - new Date(iso).getTime();
   const minutes = Math.floor(diff / MS_PER_MINUTE);
   if (minutes < MINUTES_PER_HOUR) {
@@ -14,10 +14,10 @@ export function formatRelativeDate(iso: string): string {
   }
   const days = Math.floor(hours / HOURS_PER_DAY);
   return `${days}d ago`;
-}
+};
 
 /** Reads a streaming response body to completion, discarding the data. */
-export async function consumeStream(response: Response): Promise<void> {
+export const consumeStream = async (response: Response): Promise<void> => {
   const reader = response.body?.getReader();
   if (!reader) {
     return;
@@ -28,4 +28,4 @@ export async function consumeStream(response: Response): Promise<void> {
       break;
     }
   }
-}
+};
