@@ -5,7 +5,7 @@ import { ThemeProvider as NextThemesProvider } from "next-themes";
 import type * as React from "react";
 import { useState } from "react";
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export const Providers = ({ children }: { children: React.ReactNode }) => {
   const [queryClient] = useState(() => new QueryClient());
 
   return (
@@ -21,4 +21,4 @@ export function Providers({ children }: { children: React.ReactNode }) {
       </NextThemesProvider>
     </QueryClientProvider>
   );
-}
+};
