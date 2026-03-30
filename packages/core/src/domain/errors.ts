@@ -21,6 +21,14 @@ export class VectorSearchError extends Schema.TaggedError<VectorSearchError>()(
   }
 ) {}
 
+export class VectorNotFoundError extends Schema.TaggedError<VectorNotFoundError>()(
+  "VectorNotFoundError",
+  {
+    collection: Schema.String,
+    pointId: Schema.String,
+  }
+) {}
+
 export class TalentNotFoundError extends Schema.TaggedError<TalentNotFoundError>()(
   "TalentNotFoundError",
   {

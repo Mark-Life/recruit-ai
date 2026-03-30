@@ -1,4 +1,7 @@
-import { VectorSearchError } from "@workspace/core/domain/errors";
+import {
+  VectorNotFoundError,
+  VectorSearchError,
+} from "@workspace/core/domain/errors";
 import type {
   JobDescriptionId,
   TalentId,
@@ -110,8 +113,9 @@ export const VectorSearchQdrantLayer = Layer.effect(
           );
 
           if (!jobPoint?.vector) {
-            return yield* new VectorSearchError({
-              message: `Job ${jobId} not found in Qdrant`,
+            return yield* new VectorNotFoundError({
+              collection: JOBS,
+              pointId: jobId,
             });
           }
 
@@ -145,8 +149,9 @@ export const VectorSearchQdrantLayer = Layer.effect(
           );
 
           if (!talentPoint?.vector) {
-            return yield* new VectorSearchError({
-              message: `Talent ${talentId} not found in Qdrant`,
+            return yield* new VectorNotFoundError({
+              collection: TALENTS,
+              pointId: talentId,
             });
           }
 

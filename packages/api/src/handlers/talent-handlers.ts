@@ -42,6 +42,9 @@ export const TalentsGroupLive = HttpApiBuilder.group(
           ),
           Effect.catchTag("VectorSearchError", (e) =>
             Effect.fail(`Vector search failed: ${e.message}`)
+          ),
+          Effect.catchTag("VectorNotFoundError", (e) =>
+            Effect.fail(`Vector not found: ${e.pointId} in ${e.collection}`)
           )
         )
       )

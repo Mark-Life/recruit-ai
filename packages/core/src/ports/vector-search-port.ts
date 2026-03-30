@@ -1,5 +1,5 @@
 import { Context, type Effect } from "effect";
-import type { VectorSearchError } from "../domain/errors";
+import type { VectorNotFoundError, VectorSearchError } from "../domain/errors";
 import type { JobDescriptionId, TalentId } from "../domain/models/ids";
 import type { Vector } from "../domain/models/vector";
 
@@ -61,14 +61,20 @@ export class VectorSearchPort extends Context.Tag("@recruit/VectorSearchPort")<
       jobId: JobDescriptionId,
       topK: number,
       filter?: TalentFilter
-    ) => Effect.Effect<readonly VectorCandidate[], VectorSearchError>;
+    ) => Effect.Effect<
+      readonly VectorCandidate[],
+      VectorSearchError | VectorNotFoundError
+    >;
 
     /** Top-K jobs by cosine similarity, with hard constraint pre-filtering */
     readonly searchJobsByTalentId: (
       talentId: TalentId,
       topK: number,
       filter?: JobFilter
-    ) => Effect.Effect<readonly VectorCandidate[], VectorSearchError>;
+    ) => Effect.Effect<
+      readonly VectorCandidate[],
+      VectorSearchError | VectorNotFoundError
+    >;
 
     readonly deleteTalent: (
       id: TalentId

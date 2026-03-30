@@ -2,6 +2,7 @@ import { Context, Effect, Layer } from "effect";
 import type {
   JobDescriptionNotFoundError,
   TalentNotFoundError,
+  VectorNotFoundError,
   VectorSearchError,
 } from "../domain/errors";
 import type { JobDescriptionId, TalentId } from "../domain/models/ids";
@@ -16,6 +17,7 @@ const MAX_RESULTS = 10;
 
 type RankingError =
   | VectorSearchError
+  | VectorNotFoundError
   | TalentNotFoundError
   | JobDescriptionNotFoundError;
 
