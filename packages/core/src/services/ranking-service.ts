@@ -43,10 +43,12 @@ export class RankingService extends Context.Tag("@recruit/RankingService")<
   RankingService,
   {
     readonly rankTalentsByJob: (
-      jobId: JobDescriptionId
+      jobId: JobDescriptionId,
+      options?: { strictFilters?: boolean }
     ) => Effect.Effect<readonly Match[], RankingError>;
     readonly rankJobsByTalent: (
-      talentId: TalentId
+      talentId: TalentId,
+      options?: { strictFilters?: boolean }
     ) => Effect.Effect<readonly Match[], RankingError>;
   }
 >() {
@@ -58,18 +60,22 @@ export class RankingService extends Context.Tag("@recruit/RankingService")<
       const talentRepo = yield* TalentRepository;
 
       return RankingService.of({
-        rankTalentsByJob: (jobId) =>
+        rankTalentsByJob: (jobId, options) =>
           Effect.gen(function* () {
             const jd = yield* jdRepo.findById(jobId);
+
+            const filter = options?.strictFilters
+              ? {
+                  workModes: [jd.workMode] as string[],
+                  location: jd.workMode !== "remote" ? jd.location : undefined,
+                  willingToRelocate: jd.willingToSponsorRelocation || undefined,
+                }
+              : undefined;
 
             const candidates = yield* vectorSearch.searchTalentsByJobId(
               jobId,
               VECTOR_SEARCH_TOP_K,
-              {
-                workModes: [jd.workMode],
-                location: jd.workMode !== "remote" ? jd.location : undefined,
-                willingToRelocate: jd.willingToSponsorRelocation || undefined,
-              }
+              filter
             );
 
             if (candidates.length === 0) {
@@ -104,21 +110,25 @@ export class RankingService extends Context.Tag("@recruit/RankingService")<
             });
           }),
 
-        rankJobsByTalent: (talentId) =>
+        rankJobsByTalent: (talentId, options) =>
           Effect.gen(function* () {
             const talent = yield* talentRepo.findById(talentId);
 
             const allRemote = talent.workModes.every((m) => m === "remote");
 
+            const filter = options?.strictFilters
+              ? {
+                  workModes: [...talent.workModes],
+                  location: allRemote ? undefined : talent.location,
+                  willingToSponsorRelocation:
+                    talent.willingToRelocate || undefined,
+                }
+              : undefined;
+
             const candidates = yield* vectorSearch.searchJobsByTalentId(
               talentId,
               VECTOR_SEARCH_TOP_K,
-              {
-                workModes: [...talent.workModes],
-                location: allRemote ? undefined : talent.location,
-                willingToSponsorRelocation:
-                  talent.willingToRelocate || undefined,
-              }
+              filter
             );
 
             if (candidates.length === 0) {

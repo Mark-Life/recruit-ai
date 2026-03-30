@@ -26,10 +26,12 @@ export const JobsGroupLive = HttpApiBuilder.group(AppApi, "jobs", (handlers) =>
         )
       )
     )
-    .handle("matches", ({ path }) =>
+    .handle("matches", ({ path, urlParams }) =>
       Effect.gen(function* () {
         const query = yield* JobQueryService;
-        return yield* query.getMatches(path.id as JobDescriptionId);
+        return yield* query.getMatches(path.id as JobDescriptionId, {
+          strictFilters: urlParams.strictFilters === "true",
+        });
       }).pipe(
         Effect.catchTag("JobDescriptionNotFoundError", (e) =>
           Effect.fail(`Job not found: ${e.jobDescriptionId}`)

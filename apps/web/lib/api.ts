@@ -58,12 +58,17 @@ export const useJob = (id: string) =>
     },
   });
 
-export const useMatchesForJob = (jobId: string) =>
+export const useMatchesForJob = (jobId: string, strictFilters = false) =>
   useQuery({
-    queryKey: ["jobs", jobId, "matches"],
+    queryKey: ["jobs", jobId, "matches", { strictFilters }],
     queryFn: async () => {
       const client = await getClient();
-      return Effect.runPromise(client.jobs.matches({ path: { id: jobId } }));
+      return Effect.runPromise(
+        client.jobs.matches({
+          path: { id: jobId },
+          urlParams: { strictFilters: strictFilters ? "true" : undefined },
+        })
+      );
     },
     retry: 1,
   });
@@ -123,13 +128,16 @@ export const useConfirmKeywords = (talentId: string) => {
   });
 };
 
-export const useMatchesForTalent = (talentId: string) =>
+export const useMatchesForTalent = (talentId: string, strictFilters = false) =>
   useQuery({
-    queryKey: ["talents", talentId, "matches"],
+    queryKey: ["talents", talentId, "matches", { strictFilters }],
     queryFn: async () => {
       const client = await getClient();
       return Effect.runPromise(
-        client.talents.matches({ path: { id: talentId } })
+        client.talents.matches({
+          path: { id: talentId },
+          urlParams: { strictFilters: strictFilters ? "true" : undefined },
+        })
       );
     },
     retry: 1,
@@ -138,7 +146,9 @@ export const useMatchesForTalent = (talentId: string) =>
 /** Imperative fetch for use outside React Query hooks */
 export const fetchMatchesForTalent = async (talentId: string) => {
   const client = await getClient();
-  return Effect.runPromise(client.talents.matches({ path: { id: talentId } }));
+  return Effect.runPromise(
+    client.talents.matches({ path: { id: talentId }, urlParams: {} })
+  );
 };
 
 // ---------------------------------------------------------------------------
