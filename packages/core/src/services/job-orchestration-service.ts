@@ -12,14 +12,41 @@ import { mergeAnswersIntoJd } from "../domain/jd-enrichment";
 import type { ClarifyingQuestionsExtractionOutput } from "../domain/models/clarifying-question";
 import type { JobDescriptionId, OrganizationId } from "../domain/models/ids";
 import type { JdExtraction } from "../domain/models/jd-extraction";
-import type { StructuredJd } from "../domain/models/job-description";
+import type {
+  StructuredJd,
+  UpdateJobInput,
+} from "../domain/models/job-description";
 import type { Match } from "../domain/models/match";
 import { EmbeddingPort } from "../ports/embedding-port";
 import { JobDescriptionRepository } from "../ports/job-description-repository";
 import type { DeepPartial } from "../ports/llm-port";
 import { LlmPort } from "../ports/llm-port";
-import { VectorSearchPort } from "../ports/vector-search-port";
+import { type JobPayload, VectorSearchPort } from "../ports/vector-search-port";
 import { RankingService } from "./ranking-service";
+
+const JOB_SEMANTIC_FIELDS = ["summary"] as const;
+
+const JOB_PAYLOAD_KEYS = [
+  "keywords",
+  "workMode",
+  "location",
+  "willingToSponsorRelocation",
+  "experienceYearsMin",
+  "experienceYearsMax",
+] as const;
+
+const extractJobPayloadChanges = (
+  data: UpdateJobInput
+): Partial<JobPayload> => {
+  const result: Record<string, unknown> = {};
+  for (const key of JOB_PAYLOAD_KEYS) {
+    if (data[key] !== undefined) {
+      const val = data[key];
+      result[key] = Array.isArray(val) ? [...val] : val;
+    }
+  }
+  return result as Partial<JobPayload>;
+};
 
 export interface CreateJobStreamOutput {
   readonly jd?: DeepPartial<JdExtraction>;
@@ -72,6 +99,15 @@ export class JobOrchestrationService extends Context.Tag(
     readonly runMatching: (
       id: JobDescriptionId
     ) => Effect.Effect<readonly Match[], MatchingError>;
+
+    /** Update individual fields on a job, re-embedding only when semantic fields change. */
+    readonly updateJob: (
+      id: JobDescriptionId,
+      data: UpdateJobInput
+    ) => Effect.Effect<
+      StructuredJd,
+      JobDescriptionNotFoundError | EmbeddingError | VectorSearchError
+    >;
   }
 >() {
   static readonly layer = Layer.effect(
@@ -257,6 +293,35 @@ export class JobOrchestrationService extends Context.Tag(
           ),
 
         runMatching: (id) => ranking.rankTalentsByJob(id),
+
+        updateJob: (id, data) =>
+          Effect.gen(function* () {
+            const updated = yield* jdRepo.update(id, data);
+
+            const needsReEmbed = JOB_SEMANTIC_FIELDS.some(
+              (k) => data[k] !== undefined
+            );
+
+            if (needsReEmbed) {
+              const embedding = yield* embeddingPort.embed(updated.summary);
+              yield* vectorSearch.upsertJob(id, embedding, {
+                keywords: [...updated.keywords],
+                workMode: updated.workMode,
+                location: updated.location,
+                willingToSponsorRelocation: updated.willingToSponsorRelocation,
+                experienceYearsMin: updated.experienceYearsMin,
+                experienceYearsMax: updated.experienceYearsMax,
+                status: updated.status,
+              });
+            } else {
+              const payloadChanges = extractJobPayloadChanges(data);
+              if (Object.keys(payloadChanges).length > 0) {
+                yield* vectorSearch.updateJobPayload(id, payloadChanges);
+              }
+            }
+
+            return updated;
+          }),
       });
     })
   );

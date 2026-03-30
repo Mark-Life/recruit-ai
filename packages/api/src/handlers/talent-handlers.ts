@@ -78,4 +78,23 @@ export const TalentsGroupLive = HttpApiBuilder.group(
           });
         })
       )
+      .handle("update", ({ path, payload }) =>
+        Effect.gen(function* () {
+          const orchestration = yield* TalentOrchestrationService;
+          return yield* orchestration.updateTalent(
+            path.id as TalentId,
+            payload
+          );
+        }).pipe(
+          Effect.catchTag("TalentNotFoundError", (e) =>
+            Effect.fail(`Talent not found: ${e.talentId}`)
+          ),
+          Effect.catchTag("EmbeddingError", (e) =>
+            Effect.fail(`Embedding failed: ${e.message}`)
+          ),
+          Effect.catchTag("VectorSearchError", (e) =>
+            Effect.fail(`Vector search failed: ${e.message}`)
+          )
+        )
+      )
 );

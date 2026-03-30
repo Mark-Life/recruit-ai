@@ -179,6 +179,16 @@ export const VectorSearchQdrantLayer = Layer.effect(
         tryQdrant("deleteJob", () =>
           qdrant.delete(JOBS, { points: [id] })
         ).pipe(Effect.asVoid),
+
+      updateTalentPayload: (id: TalentId, payload: Partial<TalentPayload>) =>
+        tryQdrant("updateTalentPayload", () =>
+          qdrant.setPayload(TALENTS, { payload: { ...payload }, points: [id] })
+        ).pipe(Effect.asVoid),
+
+      updateJobPayload: (id: JobDescriptionId, payload: Partial<JobPayload>) =>
+        tryQdrant("updateJobPayload", () =>
+          qdrant.setPayload(JOBS, { payload: { ...payload }, points: [id] })
+        ).pipe(Effect.asVoid),
     });
   })
 );

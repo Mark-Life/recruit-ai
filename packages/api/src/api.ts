@@ -1,7 +1,13 @@
 import { HttpApi, HttpApiEndpoint, HttpApiGroup } from "@effect/platform";
-import { StructuredJd } from "@workspace/core/domain/models/job-description";
+import {
+  StructuredJd,
+  UpdateJobInput,
+} from "@workspace/core/domain/models/job-description";
 import { Match } from "@workspace/core/domain/models/match";
-import { Talent } from "@workspace/core/domain/models/talent";
+import {
+  Talent,
+  UpdateTalentInput,
+} from "@workspace/core/domain/models/talent";
 import { Schema } from "effect";
 
 // ---------------------------------------------------------------------------
@@ -51,6 +57,14 @@ export class JobsGroup extends HttpApiGroup.make("jobs")
       .setPayload(CreateDraftJobPayload)
       .addSuccess(StructuredJd)
   )
+  .add(
+    HttpApiEndpoint.put("update", "/:id")
+      .setPath(JobIdPath)
+      .setPayload(UpdateJobInput)
+      .addSuccess(StructuredJd)
+      .addError(Schema.String, { status: 404 })
+      .addError(Schema.String, { status: 500 })
+  )
   .prefix("/api/jobs") {}
 
 // ---------------------------------------------------------------------------
@@ -96,6 +110,14 @@ export class TalentsGroup extends HttpApiGroup.make("talents")
     HttpApiEndpoint.post("createDraft", "/")
       .setPayload(CreateDraftTalentPayload)
       .addSuccess(Talent)
+  )
+  .add(
+    HttpApiEndpoint.put("update", "/:id")
+      .setPath(TalentIdPath)
+      .setPayload(UpdateTalentInput)
+      .addSuccess(Talent)
+      .addError(Schema.String, { status: 404 })
+      .addError(Schema.String, { status: 500 })
   )
   .prefix("/api/talents") {}
 
