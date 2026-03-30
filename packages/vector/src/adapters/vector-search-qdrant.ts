@@ -5,6 +5,7 @@ import type {
 } from "@workspace/core/domain/models/ids";
 import type { Vector } from "@workspace/core/domain/models/vector";
 import {
+  type JobFilter,
   type JobPayload,
   type TalentFilter,
   type TalentPayload,
@@ -32,6 +33,32 @@ const buildTalentFilter = (filter?: TalentFilter) => {
     ];
     if (filter.willingToRelocate) {
       should.push({ key: "willingToRelocate", match: { value: true } });
+    }
+    must.push({ should });
+  }
+
+  return { must };
+};
+
+/** Build Qdrant filter conditions for job search */
+const buildJobFilter = (filter?: JobFilter) => {
+  const must: Record<string, unknown>[] = [
+    { key: "status", match: { value: "ready" } },
+  ];
+
+  if (filter?.workModes?.length) {
+    must.push({ key: "workMode", match: { any: [...filter.workModes] } });
+  }
+
+  if (filter?.location) {
+    const should: Record<string, unknown>[] = [
+      { key: "location", match: { value: filter.location } },
+    ];
+    if (filter.willingToSponsorRelocation) {
+      should.push({
+        key: "willingToSponsorRelocation",
+        match: { value: true },
+      });
     }
     must.push({ should });
   }
@@ -103,7 +130,11 @@ export const VectorSearchQdrantLayer = Layer.effect(
           }));
         }),
 
-      searchJobsByTalentId: (talentId: TalentId, topK: number) =>
+      searchJobsByTalentId: (
+        talentId: TalentId,
+        topK: number,
+        filter?: JobFilter
+      ) =>
         Effect.gen(function* () {
           const [talentPoint] = yield* tryQdrant("retrieve talent vector", () =>
             qdrant.retrieve(TALENTS, {
@@ -123,9 +154,7 @@ export const VectorSearchQdrantLayer = Layer.effect(
             qdrant.search(JOBS, {
               vector: talentPoint.vector as number[],
               limit: topK,
-              filter: {
-                must: [{ key: "status", match: { value: "ready" } }],
-              },
+              filter: buildJobFilter(filter),
               with_payload: false,
             })
           );

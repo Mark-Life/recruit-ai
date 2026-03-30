@@ -6,9 +6,8 @@ import type {
 } from "../domain/errors";
 import type { JobDescriptionId, TalentId } from "../domain/models/ids";
 import type { Match } from "../domain/models/match";
-import { scoreJobs, scoreTalents } from "../domain/scoring";
+import { type ScoredPair, scoreAndRank } from "../domain/scoring";
 import { JobDescriptionRepository } from "../ports/job-description-repository";
-import { RecruiterRepository } from "../ports/recruiter-repository";
 import { TalentRepository } from "../ports/talent-repository";
 import { VectorSearchPort } from "../ports/vector-search-port";
 
@@ -19,6 +18,24 @@ type RankingError =
   | VectorSearchError
   | TalentNotFoundError
   | JobDescriptionNotFoundError;
+
+/** Project a scored pair into a Match */
+const toMatch = (
+  s: ScoredPair,
+  talentName: string | undefined,
+  jobTitle: string,
+  recruiterId: string
+) =>
+  ({
+    id: `${s.jobId}-${s.talentId}`,
+    jobDescriptionId: s.jobId,
+    talentId: s.talentId,
+    recruiterId,
+    totalScore: s.totalScore,
+    breakdown: s.breakdown,
+    talentName,
+    jobTitle,
+  }) as unknown as Match;
 
 export class RankingService extends Context.Tag("@recruit/RankingService")<
   RankingService,
@@ -37,7 +54,6 @@ export class RankingService extends Context.Tag("@recruit/RankingService")<
       const vectorSearch = yield* VectorSearchPort;
       const jdRepo = yield* JobDescriptionRepository;
       const talentRepo = yield* TalentRepository;
-      const recruiters = yield* RecruiterRepository;
 
       return RankingService.of({
         rankTalentsByJob: (jobId) =>
@@ -58,65 +74,81 @@ export class RankingService extends Context.Tag("@recruit/RankingService")<
               return [];
             }
 
-            const fullTalents = yield* talentRepo.findByIds(
+            const similarityMap = new Map(
+              candidates.map((c) => [c.id, c.similarity])
+            );
+            const talents = yield* talentRepo.findByIds(
               candidates.map((c) => c.id as TalentId)
             );
 
-            const scored = scoreTalents(jd, fullTalents, candidates);
-            const topTalents = scored.slice(0, MAX_RESULTS);
-
-            yield* recruiters.findByTalentIds(
-              topTalents.map((t) => t.talent.id)
+            const scored = scoreAndRank(
+              talents.map((t) => ({
+                talent: t,
+                jd,
+                semanticSimilarity: similarityMap.get(t.id) ?? 0,
+              })),
+              MAX_RESULTS
             );
 
-            return topTalents.map(
-              (t) =>
-                ({
-                  id: `${jd.id}-${t.talent.id}`,
-                  jobDescriptionId: jd.id,
-                  talentId: t.talent.id,
-                  recruiterId: t.talent.recruiterId,
-                  totalScore: t.totalScore,
-                  breakdown: t.breakdown,
-                  talentName: t.talent.name,
-                  jobTitle: jd.roleTitle,
-                }) as unknown as Match
-            );
+            const talentMap = new Map(talents.map((t) => [t.id as string, t]));
+            return scored.flatMap((s) => {
+              const talent = talentMap.get(s.talentId);
+              if (!talent) {
+                return [];
+              }
+              return [
+                toMatch(s, talent.name, jd.roleTitle, talent.recruiterId),
+              ];
+            });
           }),
 
         rankJobsByTalent: (talentId) =>
           Effect.gen(function* () {
             const talent = yield* talentRepo.findById(talentId);
 
+            const allRemote = talent.workModes.every((m) => m === "remote");
+
             const candidates = yield* vectorSearch.searchJobsByTalentId(
               talentId,
-              VECTOR_SEARCH_TOP_K
+              VECTOR_SEARCH_TOP_K,
+              {
+                workModes: [...talent.workModes],
+                location: allRemote ? undefined : talent.location,
+                willingToSponsorRelocation:
+                  talent.willingToRelocate || undefined,
+              }
             );
 
             if (candidates.length === 0) {
               return [];
             }
 
-            const fullJds = yield* jdRepo.findByIds(
+            const similarityMap = new Map(
+              candidates.map((c) => [c.id, c.similarity])
+            );
+            const jds = yield* jdRepo.findByIds(
               candidates.map((c) => c.id as JobDescriptionId)
             );
 
-            const scored = scoreJobs(talent, fullJds, candidates);
-            const topJobs = scored.slice(0, MAX_RESULTS);
-
-            return topJobs.map(
-              (s) =>
-                ({
-                  id: `${s.jd.id}-${talent.id}`,
-                  jobDescriptionId: s.jd.id,
-                  talentId: talent.id,
-                  recruiterId: talent.recruiterId,
-                  totalScore: s.totalScore,
-                  breakdown: s.breakdown,
-                  talentName: talent.name,
-                  jobTitle: s.jd.roleTitle,
-                }) as unknown as Match
+            const scored = scoreAndRank(
+              jds.map((jd) => ({
+                talent,
+                jd,
+                semanticSimilarity: similarityMap.get(jd.id) ?? 0,
+              })),
+              MAX_RESULTS
             );
+
+            const jdMap = new Map(jds.map((j) => [j.id as string, j]));
+            return scored.flatMap((s) => {
+              const jd = jdMap.get(s.jobId);
+              if (!jd) {
+                return [];
+              }
+              return [
+                toMatch(s, talent.name, jd.roleTitle, talent.recruiterId),
+              ];
+            });
           }),
       });
     })
