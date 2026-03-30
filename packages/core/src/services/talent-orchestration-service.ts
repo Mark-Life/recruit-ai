@@ -3,6 +3,7 @@ import type {
   EmbeddingError,
   LlmError,
   TalentNotFoundError,
+  VectorNotFoundError,
   VectorSearchError,
 } from "../domain/errors";
 import type { RecruiterId, TalentId } from "../domain/models/ids";
@@ -18,6 +19,7 @@ type ExtractTalentError =
   | LlmError
   | EmbeddingError
   | VectorSearchError
+  | VectorNotFoundError
   | TalentNotFoundError;
 
 export class TalentOrchestrationService extends Context.Tag(
@@ -43,7 +45,10 @@ export class TalentOrchestrationService extends Context.Tag(
       keywords: readonly string[]
     ) => Effect.Effect<
       Talent,
-      TalentNotFoundError | EmbeddingError | VectorSearchError
+      | TalentNotFoundError
+      | EmbeddingError
+      | VectorSearchError
+      | VectorNotFoundError
     >;
   }
 >() {

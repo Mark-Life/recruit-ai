@@ -4,6 +4,7 @@ import type {
   JobDescriptionNotFoundError,
   LlmError,
   TalentNotFoundError,
+  VectorNotFoundError,
   VectorSearchError,
 } from "../domain/errors";
 import type { ClarifyingAnswer } from "../domain/jd-enrichment";
@@ -29,10 +30,12 @@ type SubmitAnswersError =
   | LlmError
   | EmbeddingError
   | VectorSearchError
+  | VectorNotFoundError
   | JobDescriptionNotFoundError;
 
 type MatchingError =
   | VectorSearchError
+  | VectorNotFoundError
   | TalentNotFoundError
   | JobDescriptionNotFoundError;
 

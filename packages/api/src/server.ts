@@ -14,7 +14,7 @@ import { DatabaseConfig } from "@workspace/db/config";
 import { VectorSearchQdrantLayer } from "@workspace/vector/adapters/vector-search-qdrant";
 import { QdrantClientService } from "@workspace/vector/client";
 import { QdrantConfig } from "@workspace/vector/config";
-import { Layer } from "effect";
+import { Layer, Redacted } from "effect";
 import { AppApi } from "./api";
 import { HealthGroupLive } from "./handlers/health-handlers";
 import { JobsGroupLive } from "./handlers/job-handlers";
@@ -41,6 +41,9 @@ const VectorLayer = VectorSearchQdrantLayer.pipe(
   Layer.provide(
     Layer.succeed(QdrantConfig, {
       url: process.env.QDRANT_URL ?? "http://localhost:6333",
+      apiKey: process.env.QDRANT_API_KEY
+        ? Redacted.make(process.env.QDRANT_API_KEY)
+        : undefined,
     })
   )
 );
