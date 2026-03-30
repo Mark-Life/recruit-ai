@@ -1,27 +1,31 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
+import { Skeleton } from "@workspace/ui/components/skeleton";
 import {
+  AlertTriangleIcon,
   ArrowRightIcon,
-  CheckIcon,
-  CpuIcon,
   MapPinIcon,
   MonitorIcon,
   PencilIcon,
+  PlayIcon,
   PlusIcon,
+  RefreshCwIcon,
   SparklesIcon,
   UserIcon,
   XIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Suspense, use, useState } from "react";
+import { Suspense, use, useEffect, useState } from "react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { PageHeader } from "@/components/page-header";
 import type { Talent } from "@/lib/api";
 import { useConfirmKeywords, useMatchesForTalent, useTalent } from "@/lib/api";
+import { useExtractTalentStream } from "@/lib/use-stream";
 import { JobMatchCard } from "../job-match-card";
 import { ResumeTextPanel } from "../resume-text-panel";
 import { TalentPipelineSteps } from "../talent-pipeline-steps";
@@ -77,18 +81,28 @@ function TalentDetailContent({ id }: { id: string }) {
 // Right panel dispatcher
 // ---------------------------------------------------------------------------
 
+/** Extraction is considered incomplete when no keywords were extracted */
+function isExtractionIncomplete(talent: Talent) {
+  return talent.keywords.length === 0;
+}
+
 function RightPanel({ talent }: { talent: Talent }) {
+  if (talent.status === "uploaded") {
+    return <DraftPanel talent={talent} />;
+  }
+
+  if (talent.status === "extracting" && isExtractionIncomplete(talent)) {
+    return <FailedExtractionPanel talent={talent} />;
+  }
+
   switch (talent.status) {
-    case "uploaded":
-      return <UploadedPanel />;
     case "extracting":
-      return <ExtractingPanel />;
     case "reviewing":
       return <ReviewingPanel talent={talent} />;
     case "matched":
       return <MatchedPanel talent={talent} />;
     default:
-      return <ExtractingPanel />;
+      return <DraftPanel talent={talent} />;
   }
 }
 
@@ -131,105 +145,288 @@ function ProfileMeta({ talent }: { talent: Talent }) {
 }
 
 // ---------------------------------------------------------------------------
-// Uploaded — waiting to process
+// Uploaded — extraction not yet started
 // ---------------------------------------------------------------------------
 
-function UploadedPanel() {
-  return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 py-16">
-      <div className="relative">
-        <div className="relative flex size-16 items-center justify-center rounded-full bg-muted">
-          <CpuIcon className="size-7 text-muted-foreground" />
-        </div>
-      </div>
+function DraftPanel({ talent }: { talent: Talent }) {
+  const queryClient = useQueryClient();
+  const stream = useExtractTalentStream(talent.id);
+  const [started, setStarted] = useState(false);
 
-      <div className="flex flex-col items-center gap-2 text-center">
-        <h3 className="font-semibold text-base">Resume Uploaded</h3>
-        <p className="max-w-xs text-muted-foreground text-sm">
-          The resume has been received and is queued for skill extraction and
-          analysis.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Extracting — AI is processing
-// ---------------------------------------------------------------------------
-
-function ExtractingPanel() {
-  return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 py-16">
-      <div className="relative">
-        <div className="absolute inset-0 animate-ping rounded-full bg-primary/10" />
-        <div className="relative flex size-16 items-center justify-center rounded-full bg-primary/10">
-          <CpuIcon className="size-7 text-primary" />
-        </div>
-      </div>
-
-      <div className="flex flex-col items-center gap-2 text-center">
-        <h3 className="font-semibold text-base">Extracting Keywords</h3>
-        <p className="max-w-xs text-muted-foreground text-sm">
-          Analyzing the resume to extract keywords, experience, and key
-          qualifications.
-        </p>
-      </div>
-
-      <div className="flex flex-col gap-3 pt-2">
-        <AnalysisStep done label="Parsing resume text" />
-        <AnalysisStep done label="Identifying experience sections" />
-        <AnalysisStep active label="Extracting keywords" />
-        <AnalysisStep label="Generating talent profile" />
-      </div>
-    </div>
-  );
-}
-
-function AnalysisStep({
-  label,
-  done,
-  active,
-}: {
-  label: string;
-  done?: boolean;
-  active?: boolean;
-}) {
-  function renderIcon() {
-    if (done) {
-      return (
-        <div className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-          <CheckIcon className="size-3" />
-        </div>
-      );
+  useEffect(() => {
+    if (!stream.isStreaming && started && !stream.error) {
+      queryClient.invalidateQueries({ queryKey: ["talents", talent.id] });
+      queryClient.invalidateQueries({ queryKey: ["talents"] });
     }
-    if (active) {
-      return (
-        <div className="flex size-5 items-center justify-center">
-          <SparklesIcon className="size-4 animate-pulse text-primary" />
-        </div>
-      );
-    }
+  }, [stream.isStreaming, started, stream.error, queryClient, talent.id]);
+
+  function handleStart() {
+    setStarted(true);
+    stream.mutate();
+  }
+
+  if (stream.isStreaming || stream.data) {
     return (
-      <div className="size-5 rounded-full border border-border bg-muted" />
+      <StreamingExtractionPanel
+        data={stream.data}
+        error={stream.error}
+        isStreaming={stream.isStreaming}
+        onRetry={handleStart}
+        talent={talent}
+      />
     );
   }
 
-  function labelClassName() {
-    if (done) {
-      return "text-muted-foreground text-sm line-through";
-    }
-    if (active) {
-      return "font-medium text-foreground text-sm";
-    }
-    return "text-muted-foreground text-sm";
+  if (stream.error) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 py-16">
+        <div className="flex size-16 items-center justify-center rounded-full bg-destructive/10">
+          <AlertTriangleIcon className="size-7 text-destructive" />
+        </div>
+        <div className="flex flex-col items-center gap-2 text-center">
+          <h3 className="font-semibold text-base">Extraction Failed</h3>
+          <p className="max-w-xs text-muted-foreground text-sm">
+            {stream.error.message}
+          </p>
+        </div>
+        <Button onClick={handleStart} variant="outline">
+          <RefreshCwIcon className="mr-1.5 size-4" />
+          Retry Extraction
+        </Button>
+      </div>
+    );
   }
 
   return (
-    <div className="flex items-center gap-2.5">
-      {renderIcon()}
-      <span className={labelClassName()}>{label}</span>
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 py-16">
+      <div className="flex size-16 items-center justify-center rounded-full bg-primary/10">
+        <SparklesIcon className="size-7 text-primary" />
+      </div>
+
+      <div className="flex flex-col items-center gap-2 text-center">
+        <h3 className="font-semibold text-base">Ready to Process</h3>
+        <p className="max-w-xs text-muted-foreground text-sm">
+          Run AI extraction to analyze the resume and extract keywords,
+          experience, and qualifications.
+        </p>
+      </div>
+
+      <Button onClick={handleStart}>
+        <PlayIcon className="mr-1.5 size-4" />
+        Start Extraction
+      </Button>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Extracting — extraction failed, allow retry
+// ---------------------------------------------------------------------------
+
+function FailedExtractionPanel({ talent }: { talent: Talent }) {
+  const queryClient = useQueryClient();
+  const stream = useExtractTalentStream(talent.id);
+  const [retrying, setRetrying] = useState(false);
+
+  useEffect(() => {
+    if (!stream.isStreaming && retrying && !stream.error) {
+      queryClient.invalidateQueries({ queryKey: ["talents", talent.id] });
+      queryClient.invalidateQueries({ queryKey: ["talents"] });
+    }
+  }, [stream.isStreaming, retrying, stream.error, queryClient, talent.id]);
+
+  function handleRetry() {
+    setRetrying(true);
+    stream.mutate();
+  }
+
+  if (stream.isStreaming || stream.data) {
+    return (
+      <StreamingExtractionPanel
+        data={stream.data}
+        error={stream.error}
+        isStreaming={stream.isStreaming}
+        onRetry={handleRetry}
+        talent={talent}
+      />
+    );
+  }
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 py-16">
+      <div className="flex size-16 items-center justify-center rounded-full bg-destructive/10">
+        <AlertTriangleIcon className="size-7 text-destructive" />
+      </div>
+
+      <div className="flex flex-col items-center gap-2 text-center">
+        <h3 className="font-semibold text-base">Extraction Failed</h3>
+        <p className="max-w-xs text-muted-foreground text-sm">
+          The AI extraction did not complete. This can happen due to rate limits
+          or temporary service issues.
+        </p>
+      </div>
+
+      <Button onClick={handleRetry} variant="outline">
+        <RefreshCwIcon className="mr-1.5 size-4" />
+        Retry Extraction
+      </Button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Streaming extraction — shared by DraftPanel and FailedExtractionPanel
+// ---------------------------------------------------------------------------
+
+interface StreamingExtraction {
+  experienceYears?: number;
+  keywords?: readonly string[];
+  location?: string;
+  name?: string;
+  title?: string;
+  willingToRelocate?: boolean;
+  workModes?: readonly string[];
+}
+
+function StreamingKeywords({
+  data,
+  isStreaming,
+}: {
+  data: StreamingExtraction | null;
+  isStreaming: boolean;
+}) {
+  const showSkeleton =
+    isStreaming &&
+    (!data?.keywords || data.keywords.length === 0) &&
+    !data?.experienceYears;
+
+  if (showSkeleton) {
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        <Skeleton className="h-5 w-14 rounded-full" />
+        <Skeleton className="h-5 w-20 rounded-full" />
+        <Skeleton className="h-5 w-16 rounded-full" />
+        <Skeleton className="h-5 w-24 rounded-full" />
+        <Skeleton className="h-5 w-12 rounded-full" />
+      </div>
+    );
+  }
+
+  if (!data?.keywords || data.keywords.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="font-medium text-muted-foreground text-xs uppercase tracking-wider">
+        Keywords
+      </span>
+      <div className="flex flex-wrap gap-1.5">
+        {data.keywords.map((kw) => (
+          <Badge key={kw} variant="secondary">
+            {kw}
+          </Badge>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StreamingExtractionPanel({
+  talent,
+  data,
+  isStreaming,
+  error,
+  onRetry,
+}: {
+  talent: Talent;
+  data: StreamingExtraction | null;
+  isStreaming: boolean;
+  error: Error | null;
+  onRetry: () => void;
+}) {
+  return (
+    <>
+      {/* Pinned header */}
+      <div className="flex items-start justify-between gap-4 border-b px-5 py-4">
+        <div className="flex flex-col gap-1">
+          <h3 className="font-semibold text-base">Extracted Profile</h3>
+          <p className="text-muted-foreground text-sm">
+            {error
+              ? "Extraction failed. You can retry."
+              : "Analyzing resume to extract keywords and experience."}
+          </p>
+        </div>
+        {isStreaming && (
+          <div className="flex items-center gap-1.5">
+            <SparklesIcon className="size-3.5 animate-pulse text-primary" />
+            <span className="text-muted-foreground text-xs">Extracting...</span>
+          </div>
+        )}
+      </div>
+
+      {/* Scrollable content */}
+      <ScrollArea className="min-h-0 flex-1">
+        <div className="flex flex-col gap-5 p-5">
+          {error && (
+            <div className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
+              <p className="text-destructive text-sm">{error.message}</p>
+              <Button onClick={onRetry} size="sm" variant="outline">
+                <RefreshCwIcon className="mr-1.5 size-4" />
+                Retry
+              </Button>
+            </div>
+          )}
+
+          {/* Profile summary */}
+          <div className="flex flex-col gap-1">
+            <h2 className="font-semibold text-lg leading-tight">
+              {data?.name ?? talent.name}
+            </h2>
+            {isStreaming && !data?.title ? (
+              <Skeleton className="h-4 w-40" />
+            ) : (
+              data?.title && (
+                <p className="text-muted-foreground text-sm">{data.title}</p>
+              )
+            )}
+          </div>
+
+          {/* Meta tags */}
+          {isStreaming && !data?.location && !data?.workModes ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-16" />
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              {data?.location && (
+                <span className="inline-flex items-center gap-1 text-muted-foreground">
+                  <MapPinIcon className="size-3.5" />
+                  {data.location}
+                </span>
+              )}
+              {data?.workModes && data.workModes.length > 0 && (
+                <span className="inline-flex items-center gap-1 text-muted-foreground">
+                  <MonitorIcon className="size-3.5" />
+                  {data.workModes.join(" / ")}
+                </span>
+              )}
+              {data?.experienceYears != null && (
+                <span className="inline-flex items-center gap-1 text-muted-foreground">
+                  <UserIcon className="size-3.5" />
+                  {data.experienceYears} yrs exp
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Keywords */}
+          <StreamingKeywords data={data} isStreaming={isStreaming} />
+        </div>
+      </ScrollArea>
+    </>
   );
 }
 
