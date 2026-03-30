@@ -39,4 +39,3 @@ Monorepo packages: packages/core, packages/db, packages/vector, packages/ai, pac
 - Ports & Adapters: Core defines ports as Effect services (e.g., `LlmPort`, `TalentRepository`). Infrastructure packages provide `*Live` layers.
 - Effect.ts everywhere: Services, error handling, dependency injection, HTTP API, Schema validation. Use Effect patterns, not raw Promises.
 - Bi-directional matching: Jobs→Talents and Talents→Jobs use the same scoring function.
-- Codebase functions are written in standart format, we are migration to arrow functions. if you touch code, use arrow function in places you do changes
