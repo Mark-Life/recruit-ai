@@ -1,8 +1,14 @@
 "use client";
 
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@workspace/ui/components/alert";
 import { Badge } from "@workspace/ui/components/badge";
+import { Button } from "@workspace/ui/components/button";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
-import { Suspense } from "react";
+import { AlertCircleIcon } from "lucide-react";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import type { Talent } from "@/lib/api";
 import { useMatchesForTalent } from "@/lib/api";
@@ -11,13 +17,51 @@ import { ProfileMeta } from "../profile-meta";
 
 /** Matched state — profile + ranked job matches */
 export const MatchedPanel = ({ talent }: { talent: Talent }) => (
-  <Suspense fallback={<LoadingSpinner label="Loading matches..." />}>
-    <MatchedPanelContent talent={talent} />
-  </Suspense>
+  <MatchedPanelContent talent={talent} />
 );
 
 const MatchedPanelContent = ({ talent }: { talent: Talent }) => {
-  const { data: matchList } = useMatchesForTalent(talent.id);
+  const {
+    data: matchList,
+    error,
+    isLoading,
+    refetch,
+  } = useMatchesForTalent(talent.id);
+
+  if (isLoading) {
+    return <LoadingSpinner label="Loading matches..." />;
+  }
+
+  if (error) {
+    return (
+      <div className="p-5">
+        <ProfileMeta
+          experienceYears={talent.experienceYears}
+          location={talent.location}
+          name={talent.name}
+          title={talent.title}
+          workModes={talent.workModes}
+        />
+        <div className="mt-5">
+          <Alert variant="destructive">
+            <AlertCircleIcon />
+            <AlertTitle>Failed to load matches</AlertTitle>
+            <AlertDescription>
+              {error.message ||
+                "An unexpected error occurred while ranking jobs."}
+            </AlertDescription>
+          </Alert>
+          <div className="mt-3 flex justify-center">
+            <Button onClick={() => refetch()} size="sm" variant="outline">
+              Try again
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const matches = matchList ?? [];
 
   return (
     <>
@@ -28,7 +72,7 @@ const MatchedPanelContent = ({ talent }: { talent: Talent }) => {
             Profile and matching jobs ranked by fit.
           </p>
         </div>
-        <Badge variant="secondary">{matchList.length} matches</Badge>
+        <Badge variant="secondary">{matches.length} matches</Badge>
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
@@ -56,7 +100,7 @@ const MatchedPanelContent = ({ talent }: { talent: Talent }) => {
             </div>
           )}
 
-          {matchList.length === 0 ? (
+          {matches.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
               <p className="text-sm">No matching jobs found.</p>
               <p className="text-xs">
@@ -66,7 +110,7 @@ const MatchedPanelContent = ({ talent }: { talent: Talent }) => {
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {matchList.map((match, i) => (
+              {matches.map((match, i) => (
                 <JobMatchCard key={match.id} match={match} rank={i + 1} />
               ))}
             </div>

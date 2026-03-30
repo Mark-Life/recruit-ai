@@ -2,6 +2,7 @@
 
 import {
   useMutation,
+  useQuery,
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query";
@@ -56,12 +57,13 @@ export const useJob = (id: string) =>
   });
 
 export const useMatchesForJob = (jobId: string) =>
-  useSuspenseQuery({
+  useQuery({
     queryKey: ["jobs", jobId, "matches"],
     queryFn: async () => {
       const client = await getClient();
       return Effect.runPromise(client.jobs.matches({ path: { id: jobId } }));
     },
+    retry: 1,
   });
 
 // ---------------------------------------------------------------------------
@@ -120,7 +122,7 @@ export const useConfirmKeywords = (talentId: string) => {
 };
 
 export const useMatchesForTalent = (talentId: string) =>
-  useSuspenseQuery({
+  useQuery({
     queryKey: ["talents", talentId, "matches"],
     queryFn: async () => {
       const client = await getClient();
@@ -128,6 +130,7 @@ export const useMatchesForTalent = (talentId: string) =>
         client.talents.matches({ path: { id: talentId } })
       );
     },
+    retry: 1,
   });
 
 /** Imperative fetch for use outside React Query hooks */
