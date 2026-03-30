@@ -22,11 +22,11 @@ const WEIGHTS = {
  * Combines semantic similarity from vector search with keyword overlap,
  * experience alignment, and hard constraint checks.
  */
-export function scoreTalents(
+export const scoreTalents = (
   jd: StructuredJd,
   talents: readonly Talent[],
   candidates: readonly VectorCandidate[]
-): readonly ScoredTalent[] {
+): readonly ScoredTalent[] => {
   const similarityMap = new Map(candidates.map((c) => [c.id, c.similarity]));
 
   const jdKeywords = new Set(jd.keywords.map((k) => k.toLowerCase()));
@@ -61,7 +61,7 @@ export function scoreTalents(
       return { talent, breakdown, totalScore };
     })
     .sort((a, b) => b.totalScore - a.totalScore);
-}
+};
 
 interface ScoredJob {
   readonly breakdown: ScoreBreakdown;
@@ -73,11 +73,11 @@ interface ScoredJob {
  * Mirror of scoreTalents — scores jobs against a single talent.
  * Uses the same 4-factor weighted scoring.
  */
-export function scoreJobs(
+export const scoreJobs = (
   talent: Talent,
   jds: readonly StructuredJd[],
   candidates: readonly VectorCandidate[]
-): readonly ScoredJob[] {
+): readonly ScoredJob[] => {
   const similarityMap = new Map(candidates.map((c) => [c.id, c.similarity]));
   const talentKeywords = new Set(talent.keywords.map((k) => k.toLowerCase()));
 
@@ -115,13 +115,13 @@ export function scoreJobs(
       return { jd, breakdown, totalScore };
     })
     .sort((a, b) => b.totalScore - a.totalScore);
-}
+};
 
 /** Shared overlap computation between two keyword sets (0-1) */
-function computeKeywordOverlapSets(
+const computeKeywordOverlapSets = (
   setA: ReadonlySet<string>,
   setB: ReadonlySet<string>
-): number {
+): number => {
   if (setB.size === 0) {
     return 0;
   }
@@ -132,13 +132,13 @@ function computeKeywordOverlapSets(
     }
   }
   return overlap / setB.size;
-}
+};
 
 /** Jaccard-style overlap between talent keywords and JD keywords (0-1) */
-function computeKeywordOverlap(
+const computeKeywordOverlap = (
   talentKeywords: readonly string[],
   jdKeywords: ReadonlySet<string>
-): number {
+): number => {
   if (jdKeywords.size === 0) {
     return 0;
   }
@@ -153,10 +153,14 @@ function computeKeywordOverlap(
   }
 
   return overlap / jdKeywords.size;
-}
+};
 
 /** 1.0 if within range, degrades linearly outside (0–1) */
-function computeExperienceFit(years: number, min: number, max: number): number {
+const computeExperienceFit = (
+  years: number,
+  min: number,
+  max: number
+): number => {
   if (years >= min && years <= max) {
     return 1;
   }
@@ -164,10 +168,10 @@ function computeExperienceFit(years: number, min: number, max: number): number {
   const distance = years < min ? min - years : years - max;
   const range = max - min || 1;
   return Math.max(0, 1 - distance / range);
-}
+};
 
 /** Hard + soft constraint check for location, work mode, relocation (0–1) */
-function computeConstraintFit(talent: Talent, jd: StructuredJd): number {
+const computeConstraintFit = (talent: Talent, jd: StructuredJd): number => {
   let score = 0;
   let checks = 0;
 
@@ -193,4 +197,4 @@ function computeConstraintFit(talent: Talent, jd: StructuredJd): number {
   }
 
   return checks > 0 ? score / checks : 1;
-}
+};

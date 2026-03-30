@@ -104,12 +104,12 @@ const reactJd = StructuredJd.make({
   createdAt: "2026-01-01T00:00:00.000Z",
 });
 
-function buildStores(
+const buildStores = (
   jd: StructuredJd,
   talents: readonly Talent[],
   recruiters: readonly Recruiter[],
   candidates: readonly VectorCandidate[]
-) {
+) => {
   const talentMap = new Map(talents.map((t) => [t.id as string, t]));
   const recruiterMap = new Map(recruiters.map((r) => [r.id as string, r]));
   return createTestStores({
@@ -118,7 +118,7 @@ function buildStores(
     recruiters: recruiterMap,
     vectorCandidates: candidates,
   });
-}
+};
 
 // --- Tests ---
 

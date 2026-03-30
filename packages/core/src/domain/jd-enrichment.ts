@@ -7,10 +7,10 @@ export interface ClarifyingAnswer {
  * Appends user-provided answers as structured clarifications to the raw JD text.
  * The enriched text is then fed back into `structureJd` for extraction.
  */
-export function mergeAnswersIntoJd(
+export const mergeAnswersIntoJd = (
   rawJd: string,
   answers: readonly ClarifyingAnswer[]
-): string {
+): string => {
   if (answers.length === 0) {
     return rawJd;
   }
@@ -20,4 +20,4 @@ export function mergeAnswersIntoJd(
     .join("\n");
 
   return `${rawJd}\n\nAdditional clarifications:\n${clarifications}`;
-}
+};
