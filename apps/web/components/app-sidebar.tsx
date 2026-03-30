@@ -21,7 +21,7 @@ const NAV_ITEMS = [
   { title: "Talents", href: "/talents", icon: UsersIcon },
 ] as const;
 
-export function AppSidebar() {
+export const AppSidebar = () => {
   const pathname = usePathname();
 
   return (
@@ -68,4 +68,4 @@ export function AppSidebar() {
       <SidebarRail />
     </Sidebar>
   );
-}
+};
