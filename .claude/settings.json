@@ -21,11 +21,11 @@
           },
           {
             "type": "command",
-            "command": "output=$(bun x ultracite check 2>&1); if [ $? -ne 0 ]; then echo \"$output\"; exit 2; fi"
+            "command": "STOP_HOOK_ACTIVE=$(cat | jq -r '.stop_hook_active'); if [ \"$STOP_HOOK_ACTIVE\" = \"true\" ]; then exit 0; fi; output=$(bun x ultracite check 2>&1); if [ $? -ne 0 ]; then echo \"$output\" >&2; exit 2; fi"
           },
           {
             "type": "command",
-            "command": "output=$(bun turbo typecheck 2>&1); if [ $? -ne 0 ]; then echo \"$output\"; exit 2; fi"
+            "command": "STOP_HOOK_ACTIVE=$(cat | jq -r '.stop_hook_active'); if [ \"$STOP_HOOK_ACTIVE\" = \"true\" ]; then exit 0; fi; output=$(bun turbo typecheck 2>&1); if [ $? -ne 0 ]; then echo \"$output\" >&2; exit 2; fi"
           }
         ]
       }

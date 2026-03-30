@@ -90,7 +90,7 @@ export const LlmAdapterGeminiLayer = Layer.effect(
             Effect.withSpan("llm.extractKeywords")
           ),
 
-      generateClarifyingQuestions: (raw) =>
+      generateClarifyingQuestions: (raw, extracted) =>
         ai
           .use((google) =>
             generateText({
@@ -98,7 +98,7 @@ export const LlmAdapterGeminiLayer = Layer.effect(
               output: Output.object({
                 schema: clarifyingQuestionsSchema,
               }),
-              prompt: clarifyingQuestionsPrompt({ raw }),
+              prompt: clarifyingQuestionsPrompt({ raw, extracted }),
             })
           )
           .pipe(
@@ -260,7 +260,7 @@ export const LlmAdapterGeminiLayer = Layer.effect(
           )
         ),
 
-      streamClarifyingQuestions: (raw) =>
+      streamClarifyingQuestions: (raw, extracted) =>
         Stream.unwrap(
           Effect.try({
             try: () =>
@@ -269,7 +269,7 @@ export const LlmAdapterGeminiLayer = Layer.effect(
                 output: Output.object({
                   schema: clarifyingQuestionsSchema,
                 }),
-                prompt: clarifyingQuestionsPrompt({ raw }),
+                prompt: clarifyingQuestionsPrompt({ raw, extracted }),
               }),
             catch: (cause) =>
               new LlmError({

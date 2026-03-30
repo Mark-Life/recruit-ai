@@ -38,7 +38,8 @@ export class LlmPort extends Context.Tag("@recruit/LlmPort")<
       text: string
     ) => Effect.Effect<readonly string[], LlmError>;
     readonly generateClarifyingQuestions: (
-      raw: string
+      raw: string,
+      extracted?: DeepPartial<JdExtraction>
     ) => Effect.Effect<readonly ClarifyingQuestion[], LlmError>;
     readonly structureResume: (
       text: string
@@ -58,7 +59,8 @@ export class LlmPort extends Context.Tag("@recruit/LlmPort")<
       pdf: Uint8Array
     ) => Stream.Stream<DeepPartial<ResumeExtraction>, LlmError>;
     readonly streamClarifyingQuestions: (
-      raw: string
+      raw: string,
+      extracted?: DeepPartial<JdExtraction>
     ) => Stream.Stream<
       DeepPartial<ClarifyingQuestionsExtractionOutput>,
       LlmError

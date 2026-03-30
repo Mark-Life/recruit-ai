@@ -16,7 +16,19 @@ ${opts.raw}
 </input-data>
 `;
 
-export const clarifyingQuestionsPrompt = (opts: { readonly raw: string }) => `
+export const clarifyingQuestionsPrompt = (opts: {
+  readonly raw: string;
+  readonly extracted?: {
+    readonly roleTitle?: string;
+    readonly seniority?: string;
+    readonly employmentType?: string;
+    readonly workMode?: string;
+    readonly location?: string;
+    readonly willingToSponsorRelocation?: boolean;
+    readonly experienceYearsMin?: number;
+    readonly experienceYearsMax?: number;
+  };
+}) => `
 <task-context>
 You are an expert recruiter assistant. Your task is to analyze a job description and identify missing information that would improve talent matching accuracy.
 </task-context>
@@ -27,9 +39,25 @@ You are an expert recruiter assistant. Your task is to analyze a job description
 - Each question must reference which structured field it targets
 - Provide suggested answer options where applicable
 - Skip questions for fields that are clearly stated or strongly implied
+- Do NOT ask about fields that already have confident values in the extracted data below
 </extraction-rules>
 
 <input-data>
 ${opts.raw}
 </input-data>
+${
+  opts.extracted
+    ? `
+<already-extracted>
+The following fields were already extracted from the job description. Do not ask questions about fields that have meaningful, non-default values here:
+- Role title: ${opts.extracted.roleTitle ?? "unknown"}
+- Seniority: ${opts.extracted.seniority ?? "unknown"}
+- Employment type: ${opts.extracted.employmentType ?? "unknown"}
+- Work mode: ${opts.extracted.workMode ?? "unknown"}
+- Location: ${opts.extracted.location ?? "unknown"}
+- Relocation sponsorship: ${opts.extracted.willingToSponsorRelocation ?? "unknown"}
+- Experience range: ${opts.extracted.experienceYearsMin ?? "?"}–${opts.extracted.experienceYearsMax ?? "?"} years
+</already-extracted>`
+    : ""
+}
 `;

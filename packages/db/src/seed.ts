@@ -11,13 +11,13 @@ import { organizations } from "./schema/organizations";
 import { recruiters } from "./schema/recruiters";
 
 const SEED_ORGANIZATION = {
-  id: "org-seed-1",
+  id: "c24787a7-5cb3-43e4-bc33-871cff23a407",
   name: "Demo Corp",
   industry: "Technology",
 };
 
 const SEED_RECRUITER = {
-  id: "rec-seed-1",
+  id: "a7c73f63-1276-48ba-8eea-cf43c2bccc19",
   name: "Demo Recruiter",
   email: "recruiter@demo.local",
 };
