@@ -13,8 +13,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
+import { Label } from "@workspace/ui/components/label";
 import { Progress } from "@workspace/ui/components/progress";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
+import { Switch } from "@workspace/ui/components/switch";
 import { AlertCircleIcon, PencilIcon } from "lucide-react";
 import { useState } from "react";
 import { LoadingSpinner } from "@/components/loading-spinner";
@@ -29,12 +31,13 @@ export const ReadyPanel = ({ job }: { job: Job }) => (
 
 const ReadyPanelContent = ({ job }: { job: Job }) => {
   const [editOpen, setEditOpen] = useState(false);
+  const [strictFilters, setStrictFilters] = useState(false);
   const {
     data: matchList,
     error,
     isLoading,
     refetch,
-  } = useMatchesForJob(job.id);
+  } = useMatchesForJob(job.id, strictFilters);
 
   if (isLoading) {
     return <LoadingSpinner label="Loading matches..." />;
@@ -73,6 +76,16 @@ const ReadyPanelContent = ({ job }: { job: Job }) => {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <Switch
+              checked={strictFilters}
+              id="strict-filters"
+              onCheckedChange={setStrictFilters}
+            />
+            <Label className="text-xs" htmlFor="strict-filters">
+              Strict filters
+            </Label>
+          </div>
           <Button
             onClick={() => setEditOpen(true)}
             size="icon-sm"

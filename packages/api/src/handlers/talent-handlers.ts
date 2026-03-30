@@ -48,10 +48,12 @@ export const TalentsGroupLive = HttpApiBuilder.group(
           )
         )
       )
-      .handle("matches", ({ path }) =>
+      .handle("matches", ({ path, urlParams }) =>
         Effect.gen(function* () {
           const query = yield* TalentQueryService;
-          return yield* query.getMatches(path.id as TalentId);
+          return yield* query.getMatches(path.id as TalentId, {
+            strictFilters: urlParams.strictFilters === "true",
+          });
         }).pipe(
           Effect.catchTag("TalentNotFoundError", (e) =>
             Effect.fail(`Talent not found: ${e.talentId}`)

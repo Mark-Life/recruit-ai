@@ -48,6 +48,11 @@ export class JobsGroup extends HttpApiGroup.make("jobs")
   .add(
     HttpApiEndpoint.get("matches", "/:id/matches")
       .setPath(JobIdPath)
+      .setUrlParams(
+        Schema.Struct({
+          strictFilters: Schema.optional(Schema.String),
+        })
+      )
       .addSuccess(Schema.Array(Match))
       .addError(Schema.String, { status: 404 })
       .addError(Schema.String, { status: 500 })
@@ -102,6 +107,11 @@ export class TalentsGroup extends HttpApiGroup.make("talents")
   .add(
     HttpApiEndpoint.get("matches", "/:id/matches")
       .setPath(TalentIdPath)
+      .setUrlParams(
+        Schema.Struct({
+          strictFilters: Schema.optional(Schema.String),
+        })
+      )
       .addSuccess(Schema.Array(Match))
       .addError(Schema.String, { status: 404 })
       .addError(Schema.String, { status: 500 })

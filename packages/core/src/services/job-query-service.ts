@@ -26,7 +26,8 @@ export class JobQueryService extends Context.Tag("@recruit/JobQueryService")<
       id: JobDescriptionId
     ) => Effect.Effect<StructuredJd, JobDescriptionNotFoundError>;
     readonly getMatches: (
-      id: JobDescriptionId
+      id: JobDescriptionId,
+      options?: { strictFilters?: boolean }
     ) => Effect.Effect<readonly Match[], MatchError>;
   }
 >() {
@@ -39,7 +40,7 @@ export class JobQueryService extends Context.Tag("@recruit/JobQueryService")<
       return JobQueryService.of({
         listJobs: () => jdRepo.findAll(),
         getJob: (id) => jdRepo.findById(id),
-        getMatches: (id) => ranking.rankTalentsByJob(id),
+        getMatches: (id, options) => ranking.rankTalentsByJob(id, options),
       });
     })
   );

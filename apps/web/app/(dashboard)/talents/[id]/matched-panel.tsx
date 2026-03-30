@@ -7,7 +7,9 @@ import {
 } from "@workspace/ui/components/alert";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
+import { Label } from "@workspace/ui/components/label";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
+import { Switch } from "@workspace/ui/components/switch";
 import { AlertCircleIcon, PencilIcon } from "lucide-react";
 import { useState } from "react";
 import { LoadingSpinner } from "@/components/loading-spinner";
@@ -24,12 +26,13 @@ export const MatchedPanel = ({ talent }: { talent: Talent }) => (
 
 const MatchedPanelContent = ({ talent }: { talent: Talent }) => {
   const [editOpen, setEditOpen] = useState(false);
+  const [strictFilters, setStrictFilters] = useState(false);
   const {
     data: matchList,
     error,
     isLoading,
     refetch,
-  } = useMatchesForTalent(talent.id);
+  } = useMatchesForTalent(talent.id, strictFilters);
 
   if (isLoading) {
     return <LoadingSpinner label="Loading matches..." />;
@@ -76,6 +79,16 @@ const MatchedPanelContent = ({ talent }: { talent: Talent }) => {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <Switch
+              checked={strictFilters}
+              id="strict-filters"
+              onCheckedChange={setStrictFilters}
+            />
+            <Label className="text-xs" htmlFor="strict-filters">
+              Strict filters
+            </Label>
+          </div>
           <Button
             onClick={() => setEditOpen(true)}
             size="icon-sm"

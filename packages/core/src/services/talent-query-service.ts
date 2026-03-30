@@ -18,7 +18,8 @@ export class TalentQueryService extends Context.Tag(
       id: TalentId
     ) => Effect.Effect<Talent, TalentNotFoundError>;
     readonly getMatches: (
-      id: TalentId
+      id: TalentId,
+      options?: { strictFilters?: boolean }
     ) => Effect.Effect<readonly Match[], MatchError>;
   }
 >() {
@@ -31,7 +32,7 @@ export class TalentQueryService extends Context.Tag(
       return TalentQueryService.of({
         listTalents: () => talentRepo.findAll(),
         getTalent: (id) => talentRepo.findById(id),
-        getMatches: (id) => ranking.rankJobsByTalent(id),
+        getMatches: (id, options) => ranking.rankJobsByTalent(id, options),
       });
     })
   );
