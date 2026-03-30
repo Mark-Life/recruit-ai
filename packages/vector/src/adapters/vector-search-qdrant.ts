@@ -17,7 +17,7 @@ const TALENTS = "talents";
 const JOBS = "jobs";
 
 /** Build Qdrant filter conditions for talent search */
-function buildTalentFilter(filter?: TalentFilter) {
+const buildTalentFilter = (filter?: TalentFilter) => {
   const must: Record<string, unknown>[] = [
     { key: "status", match: { value: "matched" } },
   ];
@@ -37,16 +37,16 @@ function buildTalentFilter(filter?: TalentFilter) {
   }
 
   return { must };
-}
+};
 
 /** Wrap Qdrant client calls in Effect, mapping errors to VectorSearchError */
-function tryQdrant<A>(label: string, f: () => Promise<A>) {
+const tryQdrant = <A>(label: string, f: () => Promise<A>) => {
   return Effect.tryPromise({
     try: f,
     catch: (cause) =>
       new VectorSearchError({ message: `Qdrant ${label} failed`, cause }),
   });
-}
+};
 
 export const VectorSearchQdrantLayer = Layer.effect(
   VectorSearchPort,
