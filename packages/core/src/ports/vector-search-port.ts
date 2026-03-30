@@ -33,6 +33,12 @@ export interface TalentFilter {
   readonly workModes?: readonly string[];
 }
 
+export interface JobFilter {
+  readonly location?: string;
+  readonly willingToSponsorRelocation?: boolean;
+  readonly workModes?: readonly string[];
+}
+
 export class VectorSearchPort extends Context.Tag("@recruit/VectorSearchPort")<
   VectorSearchPort,
   {
@@ -57,10 +63,11 @@ export class VectorSearchPort extends Context.Tag("@recruit/VectorSearchPort")<
       filter?: TalentFilter
     ) => Effect.Effect<readonly VectorCandidate[], VectorSearchError>;
 
-    /** Top-K jobs by cosine similarity to a stored talent embedding */
+    /** Top-K jobs by cosine similarity, with hard constraint pre-filtering */
     readonly searchJobsByTalentId: (
       talentId: TalentId,
-      topK: number
+      topK: number,
+      filter?: JobFilter
     ) => Effect.Effect<readonly VectorCandidate[], VectorSearchError>;
 
     readonly deleteTalent: (

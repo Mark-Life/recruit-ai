@@ -131,8 +131,36 @@ const makeVectorSearchTestLayer = (stores: TestStores) => {
       });
       return Effect.succeed(filtered.slice(0, topK));
     },
-    searchJobsByTalentId: (_talentId, topK) =>
-      Effect.succeed(stores.vectorCandidates.slice(0, topK)),
+    searchJobsByTalentId: (_talentId, topK, filter) => {
+      const filtered = stores.vectorCandidates.filter((c) => {
+        if (!stores.structuredJd || c.id !== stores.structuredJd.id) {
+          return true;
+        }
+        const jd = stores.structuredJd;
+        if (
+          filter?.workModes?.length &&
+          !filter.workModes.includes(jd.workMode)
+        ) {
+          return false;
+        }
+        if (filter?.location) {
+          const locMatch =
+            jd.location.toLowerCase().includes(filter.location.toLowerCase()) ||
+            filter.location.toLowerCase().includes(jd.location.toLowerCase());
+          if (
+            !(
+              locMatch ||
+              (filter.willingToSponsorRelocation &&
+                jd.willingToSponsorRelocation)
+            )
+          ) {
+            return false;
+          }
+        }
+        return true;
+      });
+      return Effect.succeed(filtered.slice(0, topK));
+    },
     deleteTalent: () => Effect.void,
     deleteJob: () => Effect.void,
   });
