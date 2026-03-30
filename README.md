@@ -80,7 +80,7 @@ Hexagonal (Ports & Adapters) with Effect.ts. Core business logic has zero infras
 | Factor              | Weight | How                                                     |
 | ------------------- | ------ | ------------------------------------------------------- |
 | Semantic similarity | 40%    | Cosine distance from Qdrant (embedding of resume vs JD) |
-| Keyword overlap     | 25%    | `                                                       |
+| Keyword overlap     | 25%    | Case-insensitive exact match: count of shared keywords / JD keyword count |
 | Experience fit      | 20%    | 1.0 if in range, linear decay outside                   |
 | Constraint fit      | 15%    | Work mode match + location/relocation compatibility     |
 
