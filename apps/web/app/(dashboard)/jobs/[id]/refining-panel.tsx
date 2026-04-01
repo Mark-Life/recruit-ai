@@ -1,6 +1,5 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ClarifyingQuestion } from "@workspace/core/domain/models/clarifying-question";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
@@ -9,7 +8,7 @@ import { ArrowRightIcon, PencilIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Job } from "@/lib/api";
-import { consumeStream } from "@/lib/utils";
+import { useSubmitAnswers } from "@/lib/api";
 import { QuestionBlock } from "../question-block";
 import { EditJobSheet } from "./edit-job-sheet";
 
@@ -17,31 +16,10 @@ import { EditJobSheet } from "./edit-job-sheet";
 export const RefiningPanel = ({ job }: { job: Job }) => {
   const [editOpen, setEditOpen] = useState(false);
   const router = useRouter();
-  const queryClient = useQueryClient();
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const submitAnswers = useSubmitAnswers(job.id);
 
   const questions: readonly ClarifyingQuestion[] = job.questions ?? [];
-
-  const submitAnswers = useMutation({
-    mutationFn: async (
-      answerList: readonly { field: string; answer: string }[]
-    ) => {
-      const res = await fetch(`/api/jobs/${job.id}/answers`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers: answerList }),
-      });
-      if (!res.ok) {
-        throw new Error(`Failed: ${res.status}`);
-      }
-      await consumeStream(res);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["jobs", job.id] });
-      queryClient.invalidateQueries({ queryKey: ["jobs"] });
-      router.push(`/jobs/${job.id}`);
-    },
-  });
 
   const answeredCount = Object.values(answers).filter(
     (v) => v.trim() !== ""
@@ -55,7 +33,9 @@ export const RefiningPanel = ({ job }: { job: Job }) => {
     const answerList = Object.entries(answers)
       .filter(([, v]) => v.trim() !== "")
       .map(([field, answer]) => ({ field, answer }));
-    submitAnswers.mutate(answerList);
+    submitAnswers.mutate(answerList, {
+      onSuccess: () => router.push(`/jobs/${job.id}`),
+    });
   };
 
   return (

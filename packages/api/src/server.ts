@@ -1,4 +1,5 @@
-import { HttpApiBuilder, HttpServer } from "@effect/platform";
+import { HttpServer } from "@effect/platform";
+import { RpcSerialization, RpcServer } from "@effect/rpc";
 import { GeminiEmbeddingLive, GeminiLlmLive } from "@workspace/ai/layers";
 import { JobOrchestrationService } from "@workspace/core/services/job-orchestration-service";
 import { JobQueryService } from "@workspace/core/services/job-query-service";
@@ -15,12 +16,8 @@ import { VectorSearchQdrantLayer } from "@workspace/vector/adapters/vector-searc
 import { QdrantClientService } from "@workspace/vector/client";
 import { QdrantConfig } from "@workspace/vector/config";
 import { Layer, Redacted } from "effect";
-import { AppApi } from "./api";
-import { HealthGroupLive } from "./handlers/health-handlers";
-import { JobsGroupLive } from "./handlers/job-handlers";
-import { JobStreamRoutesLive } from "./handlers/job-stream-handlers";
-import { TalentsGroupLive } from "./handlers/talent-handlers";
-import { TalentStreamRoutesLive } from "./handlers/talent-stream-handlers";
+import { AppRpcsLive } from "./handlers/rpc-handlers";
+import { AppRpcs } from "./rpc";
 
 // ---------------------------------------------------------------------------
 // DB adapter layers (all depend on DrizzleClient)
@@ -88,19 +85,14 @@ const ServiceLayer = Layer.mergeAll(
 );
 
 // ---------------------------------------------------------------------------
-// API composition
+// RPC server
 // ---------------------------------------------------------------------------
 
-const AppApiLive = HttpApiBuilder.api(AppApi).pipe(
-  Layer.provide(HealthGroupLive),
-  Layer.provide(JobsGroupLive),
-  Layer.provide(TalentsGroupLive),
-  Layer.provide(JobStreamRoutesLive),
-  Layer.provide(TalentStreamRoutesLive),
-  Layer.provide(ServiceLayer)
+const RpcLive = Layer.mergeAll(
+  AppRpcsLive.pipe(Layer.provide(ServiceLayer)),
+  RpcSerialization.layerNdjson,
+  HttpServer.layerContext
 );
 
 export const createWebHandler = () =>
-  HttpApiBuilder.toWebHandler(
-    Layer.mergeAll(AppApiLive, HttpServer.layerContext)
-  );
+  RpcServer.toWebHandler(AppRpcs, { layer: RpcLive });

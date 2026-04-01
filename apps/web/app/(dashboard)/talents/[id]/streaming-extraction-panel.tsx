@@ -1,9 +1,9 @@
+import type { ExtractTalentStreamData } from "@workspace/api/rpc";
 import { Button } from "@workspace/ui/components/button";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { RefreshCwIcon, SparklesIcon } from "lucide-react";
 import type { Talent } from "@/lib/api";
 import { ProfileMeta } from "../profile-meta";
-import type { StreamingExtraction } from "../streaming-extraction-types";
 import { StreamingKeywords } from "../streaming-keywords";
 
 /** Live extraction view — shared by DraftPanel and FailedExtractionPanel */
@@ -15,7 +15,7 @@ export const StreamingExtractionPanel = ({
   onRetry,
 }: {
   talent: Talent;
-  data: StreamingExtraction | null;
+  data: ExtractTalentStreamData | null;
   isStreaming: boolean;
   error: Error | null;
   onRetry: () => void;
@@ -56,7 +56,7 @@ export const StreamingExtractionPanel = ({
           location={data?.location}
           name={data?.name ?? talent.name}
           title={data?.title}
-          workModes={data?.workModes ? [...data.workModes] : []}
+          workModes={data?.workModes?.filter((m) => m != null) ?? []}
         />
 
         <StreamingKeywords data={data} isStreaming={isStreaming} />
