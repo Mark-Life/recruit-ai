@@ -15,17 +15,3 @@ export const formatRelativeDate = (date: string | Date): string => {
   const days = Math.floor(hours / HOURS_PER_DAY);
   return `${days}d ago`;
 };
-
-/** Reads a streaming response body to completion, discarding the data. */
-export const consumeStream = async (response: Response): Promise<void> => {
-  const reader = response.body?.getReader();
-  if (!reader) {
-    return;
-  }
-  for (;;) {
-    const { done } = await reader.read();
-    if (done) {
-      break;
-    }
-  }
-};

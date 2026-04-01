@@ -12,7 +12,7 @@ import {
   RecruiterId,
   TalentId,
 } from "@workspace/core/domain/models/ids";
-import { Effect } from "effect";
+import { Effect, Stream } from "effect";
 import { getClient } from "./api-client";
 
 export type {
@@ -39,7 +39,7 @@ export const useJobs = () =>
     queryKey: ["jobs"],
     queryFn: async () => {
       const client = await getClient();
-      return Effect.runPromise(client.jobs.list());
+      return Effect.runPromise(client.listJobs());
     },
   });
 
@@ -52,11 +52,9 @@ export const useCreateDraftJob = () =>
     }) => {
       const client = await getClient();
       return Effect.runPromise(
-        client.jobs.createDraft({
-          payload: {
-            ...params,
-            organizationId: OrganizationId.make(params.organizationId),
-          },
+        client.createDraftJob({
+          ...params,
+          organizationId: OrganizationId.make(params.organizationId),
         })
       );
     },
@@ -68,7 +66,7 @@ export const useJob = (id: string) =>
     queryFn: async () => {
       const client = await getClient();
       return Effect.runPromise(
-        client.jobs.get({ path: { id: JobDescriptionId.make(id) } })
+        client.getJob({ id: JobDescriptionId.make(id) })
       );
     },
   });
@@ -79,9 +77,9 @@ export const useMatchesForJob = (jobId: string, strictFilters = false) =>
     queryFn: async () => {
       const client = await getClient();
       return Effect.runPromise(
-        client.jobs.matches({
-          path: { id: JobDescriptionId.make(jobId) },
-          urlParams: { strictFilters: strictFilters ? "true" : undefined },
+        client.getJobMatches({
+          id: JobDescriptionId.make(jobId),
+          strictFilters,
         })
       );
     },
@@ -102,11 +100,9 @@ export const useCreateDraftTalent = () =>
     }) => {
       const client = await getClient();
       return Effect.runPromise(
-        client.talents.createDraft({
-          payload: {
-            ...params,
-            recruiterId: RecruiterId.make(params.recruiterId),
-          },
+        client.createDraftTalent({
+          ...params,
+          recruiterId: RecruiterId.make(params.recruiterId),
         })
       );
     },
@@ -117,7 +113,7 @@ export const useTalents = () =>
     queryKey: ["talents"],
     queryFn: async () => {
       const client = await getClient();
-      return Effect.runPromise(client.talents.list());
+      return Effect.runPromise(client.listTalents());
     },
   });
 
@@ -126,9 +122,7 @@ export const useTalent = (id: string) =>
     queryKey: ["talents", id],
     queryFn: async () => {
       const client = await getClient();
-      return Effect.runPromise(
-        client.talents.get({ path: { id: TalentId.make(id) } })
-      );
+      return Effect.runPromise(client.getTalent({ id: TalentId.make(id) }));
     },
   });
 
@@ -139,9 +133,9 @@ export const useConfirmKeywords = (talentId: string) => {
     mutationFn: async (keywords: readonly string[]) => {
       const client = await getClient();
       return Effect.runPromise(
-        client.talents.confirmKeywords({
-          path: { id: TalentId.make(talentId) },
-          payload: { keywords: [...keywords] },
+        client.confirmKeywords({
+          id: TalentId.make(talentId),
+          keywords: [...keywords],
         })
       );
     },
@@ -158,9 +152,9 @@ export const useMatchesForTalent = (talentId: string, strictFilters = false) =>
     queryFn: async () => {
       const client = await getClient();
       return Effect.runPromise(
-        client.talents.matches({
-          path: { id: TalentId.make(talentId) },
-          urlParams: { strictFilters: strictFilters ? "true" : undefined },
+        client.getTalentMatches({
+          id: TalentId.make(talentId),
+          strictFilters,
         })
       );
     },
@@ -171,21 +165,13 @@ export const useMatchesForTalent = (talentId: string, strictFilters = false) =>
 export const fetchMatchesForTalent = async (talentId: string) => {
   const client = await getClient();
   return Effect.runPromise(
-    client.talents.matches({
-      path: { id: TalentId.make(talentId) },
-      urlParams: {},
-    })
+    client.getTalentMatches({ id: TalentId.make(talentId) })
   );
 };
 
 // ---------------------------------------------------------------------------
 // Update mutations
 // ---------------------------------------------------------------------------
-
-// TODO: import these from @workspace/core instead of redeclaring
-type WorkMode = "office" | "hybrid" | "remote";
-type SeniorityLevel = "junior" | "mid" | "senior" | "lead" | "principal";
-type EmploymentType = "full-time" | "contract" | "freelance";
 
 export const useUpdateTalent = (talentId: string) => {
   const queryClient = useQueryClient();
@@ -196,20 +182,37 @@ export const useUpdateTalent = (talentId: string) => {
       keywords?: readonly string[];
       experienceYears?: number;
       location?: string;
-      workModes?: readonly WorkMode[];
+      workModes?: readonly ("office" | "hybrid" | "remote")[];
       willingToRelocate?: boolean;
     }) => {
       const client = await getClient();
       return Effect.runPromise(
-        client.talents.update({
-          path: { id: TalentId.make(talentId) },
-          payload,
-        })
+        client.updateTalent({ id: TalentId.make(talentId), ...payload })
       );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["talents", talentId] });
       queryClient.invalidateQueries({ queryKey: ["talents"] });
+    },
+  });
+};
+
+export const useSubmitAnswers = (jobId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      answers: readonly { field: string; answer: string }[]
+    ) => {
+      const client = await getClient();
+      const stream = client.submitAnswers({
+        id: JobDescriptionId.make(jobId),
+        answers: [...answers],
+      });
+      await Effect.runPromise(Stream.runDrain(stream));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["jobs", jobId] });
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
     },
   });
 };
@@ -221,9 +224,9 @@ export const useUpdateJob = (jobId: string) => {
       summary?: string;
       roleTitle?: string;
       keywords?: readonly string[];
-      seniority?: SeniorityLevel;
-      employmentType?: EmploymentType;
-      workMode?: WorkMode;
+      seniority?: "junior" | "mid" | "senior" | "lead" | "principal";
+      employmentType?: "full-time" | "contract" | "freelance";
+      workMode?: "office" | "hybrid" | "remote";
       location?: string;
       willingToSponsorRelocation?: boolean;
       experienceYearsMin?: number;
@@ -231,10 +234,7 @@ export const useUpdateJob = (jobId: string) => {
     }) => {
       const client = await getClient();
       return Effect.runPromise(
-        client.jobs.update({
-          path: { id: JobDescriptionId.make(jobId) },
-          payload,
-        })
+        client.updateJob({ id: JobDescriptionId.make(jobId), ...payload })
       );
     },
     onSuccess: () => {

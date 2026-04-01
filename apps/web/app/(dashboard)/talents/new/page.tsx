@@ -1,5 +1,6 @@
 "use client";
 
+import type { ExtractTalentStreamData } from "@workspace/api/rpc";
 import { Badge } from "@workspace/ui/components/badge";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { Separator } from "@workspace/ui/components/separator";
@@ -13,7 +14,6 @@ import { useExtractTalentStream } from "@/lib/use-stream";
 import { EditableKeywords } from "../editable-keywords";
 import { JobMatchCard, MatchCardSkeleton } from "../job-match-card";
 import { ProfileMeta } from "../profile-meta";
-import type { StreamingExtraction } from "../streaming-extraction-types";
 import { StreamingKeywords } from "../streaming-keywords";
 import { TalentPipelineSteps } from "../talent-pipeline-steps";
 import { type DraftInfo, FormPhase } from "./form-phase";
@@ -68,7 +68,9 @@ const ExtractionPhase = ({ draft }: { draft: DraftInfo }) => {
   useEffect(() => {
     if (!stream.isStreaming && stream.data && phase === "streaming") {
       setPhase("editing");
-      setKeywords(stream.data.keywords ?? []);
+      setKeywords(
+        stream.data.keywords?.filter((k): k is string => k != null) ?? []
+      );
     }
   }, [stream.isStreaming, stream.data, phase]);
 
@@ -191,7 +193,7 @@ const RightPanel = ({
   matches,
 }: {
   phase: RightPanelPhase;
-  extraction: StreamingExtraction | null;
+  extraction: ExtractTalentStreamData | null;
   isStreaming: boolean;
   streamError: Error | null;
   draft: DraftInfo;
@@ -245,7 +247,7 @@ const RightPanel = ({
             location={extraction?.location}
             name={extraction?.name ?? draft.name}
             title={extraction?.title}
-            workModes={extraction?.workModes ? [...extraction.workModes] : []}
+            workModes={extraction?.workModes?.filter((m) => m != null) ?? []}
           />
 
           {phase === "streaming" && (

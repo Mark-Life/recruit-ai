@@ -4,9 +4,9 @@
   "type": "module",
   "private": true,
   "exports": {
-    "./api": "./src/api.ts",
     "./server": "./src/server.ts",
-    "./client": "./src/client.ts"
+    "./client": "./src/client.ts",
+    "./rpc": "./src/rpc.ts"
   },
   "scripts": {
     "lint": "bunx --bun ultracite check",
@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@effect/platform": "catalog:",
+    "@effect/rpc": "catalog:",
     "@workspace/core": "workspace:*",
     "@workspace/db": "workspace:*",
     "@workspace/ai": "workspace:*",

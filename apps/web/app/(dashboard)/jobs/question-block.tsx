@@ -6,7 +6,7 @@ import { CheckCircleIcon } from "lucide-react";
 
 export interface QuestionBlockQuestion {
   field?: string;
-  options?: readonly string[];
+  options?: readonly (string | undefined)[];
   question?: string;
   reason?: string;
 }
@@ -52,16 +52,18 @@ export const QuestionBlock = ({
         <div className="pl-8">
           {hasOptions ? (
             <div className="flex flex-wrap gap-2">
-              {question.options?.map((opt) => (
-                <Button
-                  key={opt}
-                  onClick={() => onChange(opt)}
-                  size="sm"
-                  variant={value === opt ? "default" : "outline"}
-                >
-                  {opt}
-                </Button>
-              ))}
+              {question.options
+                ?.filter((o) => o != null)
+                .map((opt) => (
+                  <Button
+                    key={opt}
+                    onClick={() => onChange(opt)}
+                    size="sm"
+                    variant={value === opt ? "default" : "outline"}
+                  >
+                    {opt}
+                  </Button>
+                ))}
             </div>
           ) : (
             <Input

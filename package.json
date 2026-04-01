@@ -43,6 +43,7 @@
   ],
   "catalog": {
     "effect": "^3.21.0",
-    "@effect/platform": "^0.96.0"
+    "@effect/platform": "^0.96.0",
+    "@effect/rpc": "^0.75.0"
   }
 }

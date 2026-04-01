@@ -1,7 +1,7 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { CreateJobStreamData } from "@workspace/api/rpc";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
@@ -22,10 +22,9 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { PageHeader } from "@/components/page-header";
-import { useCreateDraftJob } from "@/lib/api";
+import { useCreateDraftJob, useSubmitAnswers } from "@/lib/api";
 import { SEED_ORGANIZATION_ID } from "@/lib/seed-constants";
 import { useExtractJobStream } from "@/lib/use-stream";
-import { consumeStream } from "@/lib/utils";
 import { JobPipelineSteps } from "../job-pipeline-steps";
 import { QuestionBlock } from "../question-block";
 import { QuestionSkeletons } from "../question-skeletons";
@@ -248,18 +247,7 @@ const ExtractionPhase = ({ draft }: { draft: DraftInfo }) => {
 // Left panel — same structure as JdTextPanel, with streaming data
 // ---------------------------------------------------------------------------
 
-interface StreamingJd {
-  employmentType?: string;
-  experienceYearsMax?: number;
-  experienceYearsMin?: number;
-  keywords?: readonly string[];
-  location?: string;
-  roleTitle?: string;
-  seniority?: string;
-  summary?: string;
-  willingToSponsorRelocation?: boolean;
-  workMode?: string;
-}
+type StreamingJd = CreateJobStreamData["jd"];
 
 const StreamingJdPanel = ({
   jd,
@@ -382,16 +370,7 @@ const StreamingJdPanel = ({
 // Right panel — streams questions, then transitions to interactive answers
 // ---------------------------------------------------------------------------
 
-interface StreamingQuestion {
-  field?: string;
-  options?: readonly string[];
-  question?: string;
-  reason?: string;
-}
-
-interface StreamingQuestions {
-  questions?: readonly Partial<StreamingQuestion>[];
-}
+type StreamingQuestions = CreateJobStreamData["questions"];
 
 const QuestionsPanel = ({
   questions,
@@ -409,31 +388,10 @@ const QuestionsPanel = ({
   onRetry: () => void;
 }) => {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const submitAnswers = useSubmitAnswers(jobId);
 
-  const questionList = questions?.questions ?? [];
-
-  const submitAnswers = useMutation({
-    mutationFn: async (
-      answerList: readonly { field: string; answer: string }[]
-    ) => {
-      const res = await fetch(`/api/jobs/${jobId}/answers`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers: answerList }),
-      });
-      if (!res.ok) {
-        throw new Error(`Failed: ${res.status}`);
-      }
-      await consumeStream(res);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["jobs", jobId] });
-      queryClient.invalidateQueries({ queryKey: ["jobs"] });
-      router.push(`/jobs/${jobId}`);
-    },
-  });
+  const questionList = questions?.questions?.filter((q) => q != null) ?? [];
 
   const handleAnswer = (field: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [field]: value }));
@@ -443,7 +401,9 @@ const QuestionsPanel = ({
     const answerList = Object.entries(answers)
       .filter(([, v]) => v.trim() !== "")
       .map(([field, answer]) => ({ field, answer }));
-    submitAnswers.mutate(answerList);
+    submitAnswers.mutate(answerList, {
+      onSuccess: () => router.push(`/jobs/${jobId}`),
+    });
   };
 
   const answeredCount = Object.values(answers).filter(

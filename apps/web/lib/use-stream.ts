@@ -1,95 +1,67 @@
 "use client";
 
+import type {
+  CreateJobStreamData,
+  ExtractTalentStreamData,
+} from "@workspace/api/rpc";
+import { JobDescriptionId, TalentId } from "@workspace/core/domain/models/ids";
+import { Effect, Stream } from "effect";
 import { useCallback, useRef, useState } from "react";
+import { getClient } from "./api-client";
 
 // ---------------------------------------------------------------------------
-// Core NDJSON streaming hook
+// Shared state shape
 // ---------------------------------------------------------------------------
 
 interface StreamState<T> {
-  data: Partial<T> | null;
+  data: T | null;
   error: Error | null;
   isStreaming: boolean;
 }
 
-interface StreamOptions {
-  body?: unknown;
-  method?: string;
-  url: string;
-}
-
-const readNdjsonStream = async <T>(
-  reader: ReadableStreamDefaultReader<Uint8Array>,
-  onChunk: (parsed: Partial<T>) => void
-) => {
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) {
-      break;
-    }
-
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed) {
-        onChunk(JSON.parse(trimmed) as Partial<T>);
-      }
-    }
-  }
-
-  if (buffer.trim()) {
-    onChunk(JSON.parse(buffer.trim()) as Partial<T>);
-  }
-};
-
 const toError = (err: unknown): Error =>
   err instanceof Error ? err : new Error(String(err));
 
-export const useNdjsonStream = <T>() => {
-  const [state, setState] = useState<StreamState<T>>({
+// ---------------------------------------------------------------------------
+// Job extraction stream
+// ---------------------------------------------------------------------------
+
+export const useExtractJobStream = (jobId: string) => {
+  const [state, setState] = useState<StreamState<CreateJobStreamData>>({
     data: null,
     isStreaming: false,
     error: null,
   });
-  const abortRef = useRef<AbortController | null>(null);
+  const cancelledRef = useRef(false);
 
-  const start = useCallback(async (options: StreamOptions) => {
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
+  const mutate = useCallback(async () => {
+    cancelledRef.current = false;
     setState({ data: null, isStreaming: true, error: null });
 
     try {
-      const res = await fetch(options.url, {
-        method: options.method ?? "POST",
-        headers: { "Content-Type": "application/json" },
-        body: options.body ? JSON.stringify(options.body) : undefined,
-        signal: controller.signal,
+      const client = await getClient();
+      const stream = client.extractJob({
+        id: JobDescriptionId.make(jobId),
       });
 
-      if (!res.ok) {
-        throw new Error(`${res.status} ${res.statusText}`);
+      await Effect.runPromise(
+        Stream.runForEach(stream, (chunk) =>
+          Effect.sync(() => {
+            if (!cancelledRef.current) {
+              setState((prev) => ({
+                ...prev,
+                data: chunk,
+              }));
+            }
+          })
+        )
+      );
+
+      if (!cancelledRef.current) {
+        setState((prev) => ({ ...prev, isStreaming: false }));
       }
-
-      const reader = res.body?.getReader();
-      if (!reader) {
-        throw new Error("No response body");
-      }
-
-      await readNdjsonStream<T>(reader, (parsed) => {
-        setState((prev) => ({ ...prev, data: parsed }));
-      });
-
-      setState((prev) => ({ ...prev, isStreaming: false }));
     } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") {
+      if (cancelledRef.current) {
         return;
       }
       setState((prev) => ({
@@ -98,100 +70,70 @@ export const useNdjsonStream = <T>() => {
         error: toError(err),
       }));
     }
-  }, []);
+  }, [jobId]);
 
   const cancel = useCallback(() => {
-    abortRef.current?.abort();
+    cancelledRef.current = true;
     setState((prev) => ({ ...prev, isStreaming: false }));
   }, []);
 
-  return { ...state, start, cancel };
+  return { ...state, mutate, cancel };
 };
 
 // ---------------------------------------------------------------------------
-// Typed streaming mutation hooks
+// Talent extraction stream
 // ---------------------------------------------------------------------------
-
-interface CreateJobStreamOutput {
-  jd?: Partial<{
-    summary: string;
-    roleTitle: string;
-    keywords: readonly string[];
-    seniority: string;
-    employmentType: string;
-    workMode: string;
-    location: string;
-    willingToSponsorRelocation: boolean;
-    experienceYearsMin: number;
-    experienceYearsMax: number;
-  }>;
-  questions?: Partial<{
-    questions: readonly Partial<{
-      field: string;
-      question: string;
-      reason: string;
-      options: readonly string[];
-    }>[];
-  }>;
-}
-
-export const useExtractJobStream = (jobId: string) => {
-  const stream = useNdjsonStream<CreateJobStreamOutput>();
-
-  const mutate = useCallback(() => {
-    stream.start({
-      url: `/api/jobs/${jobId}/extract`,
-    });
-  }, [jobId, stream.start]);
-
-  return { ...stream, mutate };
-};
-
-interface SubmitAnswersStreamOutput {
-  employmentType?: string;
-  id?: string;
-  keywords?: readonly string[];
-  location?: string;
-  roleTitle?: string;
-  seniority?: string;
-  summary?: string;
-  workMode?: string;
-}
-
-export const useSubmitAnswersStream = (jobId: string) => {
-  const stream = useNdjsonStream<SubmitAnswersStreamOutput>();
-
-  const mutate = useCallback(
-    (answers: readonly { field: string; answer: string }[]) => {
-      stream.start({
-        url: `/api/jobs/${jobId}/answers`,
-        body: { answers },
-      });
-    },
-    [jobId, stream.start]
-  );
-
-  return { ...stream, mutate };
-};
-
-interface ResumeExtractionOutput {
-  experienceYears?: number;
-  keywords?: readonly string[];
-  location?: string;
-  name?: string;
-  title?: string;
-  willingToRelocate?: boolean;
-  workModes?: readonly string[];
-}
 
 export const useExtractTalentStream = (talentId: string) => {
-  const stream = useNdjsonStream<ResumeExtractionOutput>();
+  const [state, setState] = useState<StreamState<ExtractTalentStreamData>>({
+    data: null,
+    isStreaming: false,
+    error: null,
+  });
+  const cancelledRef = useRef(false);
 
-  const mutate = useCallback(() => {
-    stream.start({
-      url: `/api/talents/${talentId}/extract`,
-    });
-  }, [talentId, stream.start]);
+  const mutate = useCallback(async () => {
+    cancelledRef.current = false;
+    setState({ data: null, isStreaming: true, error: null });
 
-  return { ...stream, mutate };
+    try {
+      const client = await getClient();
+      const stream = client.extractTalent({
+        id: TalentId.make(talentId),
+      });
+
+      await Effect.runPromise(
+        Stream.runForEach(stream, (chunk) =>
+          Effect.sync(() => {
+            if (!cancelledRef.current) {
+              setState((prev) => ({
+                ...prev,
+                data: chunk,
+              }));
+            }
+          })
+        )
+      );
+
+      if (!cancelledRef.current) {
+        setState((prev) => ({ ...prev, isStreaming: false }));
+      }
+    } catch (err) {
+      if (cancelledRef.current) {
+        return;
+      }
+      setState((prev) => ({
+        ...prev,
+        isStreaming: false,
+        error: toError(err),
+      }));
+    }
+  }, [talentId]);
+
+  const cancel = useCallback(() => {
+    cancelledRef.current = true;
+    setState((prev) => ({ ...prev, isStreaming: false }));
+  }, []);
+
+  return { ...state, mutate, cancel };
 };

@@ -1,13 +1,13 @@
+import type { ExtractTalentStreamData } from "@workspace/api/rpc";
 import { Badge } from "@workspace/ui/components/badge";
 import { Skeleton } from "@workspace/ui/components/skeleton";
-import type { StreamingExtraction } from "./streaming-extraction-types";
 
 /** Read-only keyword badges with skeleton placeholders during streaming */
 export const StreamingKeywords = ({
   data,
   isStreaming,
 }: {
-  data: StreamingExtraction | null;
+  data: ExtractTalentStreamData | null;
   isStreaming: boolean;
 }) => {
   const showSkeleton =

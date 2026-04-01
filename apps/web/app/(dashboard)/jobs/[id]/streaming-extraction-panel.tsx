@@ -1,33 +1,13 @@
 "use client";
 
+import type { CreateJobStreamData } from "@workspace/api/rpc";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { RefreshCwIcon, SparklesIcon } from "lucide-react";
 
-export interface StreamingJobData {
-  jd?: Partial<{
-    summary: string;
-    roleTitle: string;
-    keywords: readonly string[];
-    seniority: string;
-    employmentType: string;
-    workMode: string;
-    location: string;
-    experienceYearsMin: number;
-    experienceYearsMax: number;
-  }>;
-  questions?: Partial<{
-    questions: readonly Partial<{
-      field: string;
-      question: string;
-      reason: string;
-    }>[];
-  }>;
-}
-
-type StreamingJd = StreamingJobData["jd"];
+type StreamingJd = CreateJobStreamData["jd"];
 
 /** Full streaming extraction panel with header, profile, and questions. */
 export const StreamingJobExtractionPanel = ({
@@ -36,13 +16,14 @@ export const StreamingJobExtractionPanel = ({
   error,
   onRetry,
 }: {
-  data: StreamingJobData | null;
+  data: CreateJobStreamData | null;
   isStreaming: boolean;
   error: Error | null;
   onRetry: () => void;
 }) => {
   const jd = data?.jd;
-  const questionList = data?.questions?.questions ?? [];
+  const questionList =
+    data?.questions?.questions?.filter((q) => q != null) ?? [];
 
   return (
     <>
