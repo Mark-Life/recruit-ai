@@ -13,7 +13,7 @@ Hexagonal (Ports & Adapters) with Effect.ts. Core business logic has zero infras
                                       │
                           ┌───────────v────────────┐
                           │    packages/api        │
-                          │  (Effect HTTP API)     │
+                          │  (Effect RPC)          │
                           └───────────┬────────────┘
                                       │
               ┌───────────────────────────────────────────────┐
@@ -208,7 +208,7 @@ No cross-system transactions. Strategy: **status-gated writes + idempotent upser
 | `packages/db`                | Drizzle schema, migrations, PostgreSQL repository adapters  |
 | `packages/vector`            | Qdrant vector search adapter                                |
 | `packages/ai`                | LLM and embedding adapters (Gemini via Vercel AI SDK)       |
-| `packages/api`               | Effect HTTP API layer                                       |
+| `packages/api`               | Effect RPC API layer (`@effect/rpc`)                        |
 | `packages/ui`                | Shared shadcn/ui component library                          |
 | `packages/env`               | Environment variable validation                             |
 | `packages/typescript-config` | Shared TypeScript configs                                   |
@@ -218,7 +218,7 @@ No cross-system transactions. Strategy: **status-gated writes + idempotent upser
 
 - **Language**: TypeScript + Effect.ts
 - **Frontend**: Next.js
-- **Backend**: Effect HTTP API (`@effect/platform`)
+- **Backend**: Effect RPC (`@effect/rpc`)
 - **ORM**: Drizzle ORM
 - **Database**: PostgreSQL
 - **Vector DB**: Qdrant
